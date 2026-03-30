@@ -1,0 +1,6 @@
+@SmartWalletAI_HostAddress = http://localhost:5279
+
+GET {{SmartWalletAI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
