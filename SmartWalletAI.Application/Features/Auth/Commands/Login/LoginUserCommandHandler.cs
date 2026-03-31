@@ -59,8 +59,8 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.Login
             user.RefreshToken = refreshToken;
             user.RefreshTokenExpiryTime = refreshTokenExpiration;
 
-            _userRepository.UpdateAsync(user);
-            _userRepository.SaveChangesAsync();
+            await _userRepository.UpdateAsync(user);
+            await _userRepository.SaveChangesAsync();
 
             return new LoginUserResponse
             {

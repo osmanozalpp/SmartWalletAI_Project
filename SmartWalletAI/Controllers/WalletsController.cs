@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens.Experimental;
+using SmartWalletAI.Application.Features.Analysis.Queries.GetExpenseAnalysis;
 using SmartWalletAI.Application.Features.Wallets.Commands.Queries.GetMyWallet;
 using SmartWalletAI.Application.Features.Wallets.Commands.Queries.GetWalletTransactions;
 using SmartWalletAI.Application.Features.Wallets.Commands.TransferMoney;
@@ -54,11 +56,33 @@ namespace SmartWalletAI.WebAPI.Controllers
             var response = await _mediator.Send(command);
             return Ok(response);
         }
+
         [HttpGet("{walletId}/transactions")]
         public async Task<IActionResult> GetWalletTransactions([FromRoute] Guid walletId , [FromQuery] GetWalletTransactionsQuery query)
         {
             query.WalletId = walletId;
 
+            var result = await _mediator.Send(query);
+
+            return Ok(result);
+        }
+
+        [HttpGet("analysis")]
+        public async Task<IActionResult> GetExpenseAnalysis()
+        {
+            //kullanıcının Id si url den değil tokendan gelir.
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+
+            if(string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString , out Guid userId))
+            {
+                return Unauthorized(new { Message = "Geçersiz veya eksik token" });
+            }
+                
+            
+
+            //query oluşturuldu ve mediatra fırlatıldı
+            var query = new GetExpenseAnalysisQuery { UserId = userId };
             var result = await _mediator.Send(query);
 
             return Ok(result);

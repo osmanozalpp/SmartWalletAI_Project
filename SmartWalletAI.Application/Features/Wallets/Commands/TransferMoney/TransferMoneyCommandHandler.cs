@@ -61,7 +61,8 @@ namespace SmartWalletAI.Application.Features.Wallets.Commands.TransferMoney
                     ReceiverWalletId = receiverWallet.Id,
                     Amount = request.Amount,
                     TransactionTime = DateTime.UtcNow,
-                    Description = "Para Transferi"
+                    Description = request.Description ?? "Para Transferi",
+                    Category = request.Category
                 };
 
                 await _transactionRepository.AddAsync(transactionRecord);

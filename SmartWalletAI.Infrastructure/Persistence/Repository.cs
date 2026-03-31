@@ -49,7 +49,7 @@ namespace SmartWalletAI.Infrastructure.Persistence
         }
         public IQueryable<T> GetAllAsQueryable()
         {
-            return _context.Set<T>().AsNoTracking();
+            return _context.Set<T>().AsQueryable();
         }
     }
 }

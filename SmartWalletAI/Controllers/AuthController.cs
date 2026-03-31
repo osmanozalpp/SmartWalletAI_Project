@@ -20,6 +20,7 @@ namespace SmartWalletAI.WebAPI.Controllers
         public AuthController(IMediator mediator)
         {
             _mediator = mediator;
+            
         }
 
         [HttpPost("register")]
@@ -39,6 +40,7 @@ namespace SmartWalletAI.WebAPI.Controllers
         }
 
         [HttpPost("verify-email")]
+        [EnableRateLimiting("AuthPolicy")]
         public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailCommand command)
         {
             var result = await _mediator.Send(command);
@@ -50,6 +52,7 @@ namespace SmartWalletAI.WebAPI.Controllers
             });
         }
         [HttpPost("reset-password")]
+        [EnableRateLimiting("AuthPolicy")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordCommand command)
         {
             var result = await _mediator.Send(command);
@@ -61,6 +64,7 @@ namespace SmartWalletAI.WebAPI.Controllers
             });
         }
         [HttpPost("forgot-password")]
+        [EnableRateLimiting("AuthPolicy")]  
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordCommand command)
         {
             var result = await _mediator.Send(command);

@@ -19,20 +19,24 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.VerifyEmail
         }
         public async Task<bool> Handle(VerifyEmailCommand request, CancellationToken cancellationToken)
         {
-            var user = _userRepository.GetAsync(u => u.Email == request.Email).Result;
+            
+            var user = await _userRepository.GetAsync(u => u.Email == request.Email);
 
-            if(user == null || user.EmailVerificationCode != request.Code)
+            if (user == null || user.EmailVerificationCode != request.Code)
                 throw new Exception("Geçersiz doğrulama kodu.");
 
-            if(user.EmailVerificationCodeExpiry < DateTime.UtcNow)
+            if (user.EmailVerificationCodeExpiry < DateTime.UtcNow)
                 throw new Exception("Doğrulama kodunun süresi doldu . Lütfen yeni bir kod isteyin.");
-
 
             user.IsEmailVerified = true;
             user.EmailVerificationCode = null;
             user.EmailVerificationCodeExpiry = null;
 
             await _userRepository.UpdateAsync(user);
+
+            
+            await _userRepository.SaveChangesAsync();
+
             return true;
         }
     }

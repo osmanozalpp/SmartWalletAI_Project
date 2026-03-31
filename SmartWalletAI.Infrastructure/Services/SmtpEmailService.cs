@@ -19,7 +19,8 @@ namespace SmartWalletAI.Infrastructure.Services
                 Port = 587,
                 DeliveryMethod = SmtpDeliveryMethod.Network, 
                 UseDefaultCredentials = false,             
-                Credentials = new NetworkCredential("ozalposman005@gmail.com", "bunrivacfaphaljo"), 
+                Credentials = new NetworkCredential("ozalposman005@gmail.com", "bunrivacfaphaljo"),
+                EnableSsl = true,
             };
             var mailMessage = new MailMessage
             {

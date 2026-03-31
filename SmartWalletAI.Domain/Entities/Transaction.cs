@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SmartWalletAI.Domain.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,7 +16,9 @@ namespace SmartWalletAI.Domain.Entities
         public Guid ReceiverWalletId { get; set; }
         public Decimal Amount { get; set; }
         public DateTime TransactionTime { get; set; }
-        public string Description { get; set; }
+        public string? Description { get; set; }
+
+        public TransactionCategory Category { get; set; }
 
     }
 }

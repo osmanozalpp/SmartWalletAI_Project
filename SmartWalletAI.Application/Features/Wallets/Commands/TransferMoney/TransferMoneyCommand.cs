@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using SmartWalletAI.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,6 +16,9 @@ namespace SmartWalletAI.Application.Features.Wallets.Commands.TransferMoney
 
         public string ReceiverIban { get; set; } = string.Empty;
         public decimal Amount { get; set; }
+
+        public string? Description { get; set; }
+        public TransactionCategory Category { get; set; }
     }
 
     public class TransferMoneyResponse
