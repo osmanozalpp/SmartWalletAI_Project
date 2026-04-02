@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens.Experimental;
 using SmartWalletAI.Application.Features.Analysis.Queries.GetExpenseAnalysis;
 using SmartWalletAI.Application.Features.Wallets.Commands.Queries.GetMyWallet;
+using SmartWalletAI.Application.Features.Wallets.Commands.Queries.GetRecipients;
 using SmartWalletAI.Application.Features.Wallets.Commands.Queries.GetWalletTransactions;
+using SmartWalletAI.Application.Features.Wallets.Commands.SaveContact;
 using SmartWalletAI.Application.Features.Wallets.Commands.TransferMoney;
 using System.Security.Claims;
 
@@ -77,9 +79,7 @@ namespace SmartWalletAI.WebAPI.Controllers
             if(string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString , out Guid userId))
             {
                 return Unauthorized(new { Message = "Geçersiz veya eksik token" });
-            }
-                
-            
+            }    
 
             //query oluşturuldu ve mediatra fırlatıldı
             var query = new GetExpenseAnalysisQuery { UserId = userId };
@@ -87,5 +87,42 @@ namespace SmartWalletAI.WebAPI.Controllers
 
             return Ok(result);
         }
-    }
+
+        [HttpGet("recipients")]
+        public async Task<IActionResult> GetRecipients()
+        {
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if(string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString , out Guid userId))
+            {
+                return Unauthorized(new { Message = "Geçersiz veya eksik token" });
+            }
+            var query = new GetRecipientQuery { UserId = userId };
+            var result = await _mediator.Send(query);
+            return Ok(result);
+        }
+
+        [HttpPost("contacts")]
+        public async Task<IActionResult> SaveContact([FromBody] SaveContactCommand command)
+        {
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out Guid userId))
+            {
+                return Unauthorized(new { Message = "Geçersiz veya eksik token" });
+            }
+
+            command.UserId = userId;
+
+            var result = await _mediator.Send(command);
+            string returnMessage = command.IsFavorite? "Kişi favorilere başarıyla eklendi." : "Kişi başarıyla kaydedildi.";
+                                                                                  
+            return Ok(new
+            {
+                Message = returnMessage,
+                Success = result
+            });
+
+        }
+        }
 }

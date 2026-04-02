@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using SmartWalletAI.Application.Features.Auth.Commands.ForgotPassword;
 using SmartWalletAI.Application.Features.Auth.Commands.Login;
 using SmartWalletAI.Application.Features.Auth.Commands.Register;
+using SmartWalletAI.Application.Features.Auth.Commands.ResendVerificationCode;
 using SmartWalletAI.Application.Features.Auth.Commands.ResetPassword;
 using SmartWalletAI.Application.Features.Auth.Commands.VerifyEmail;
 
@@ -75,5 +76,17 @@ namespace SmartWalletAI.WebAPI.Controllers
                 Success = result
             });
         }
-    }
+
+        [HttpPost("resend-verification-code")]
+        public async Task<IActionResult> ResendVerificationCode([FromBody] ResendVerificationCodeCommand command)
+        {
+            await _mediator.Send(command);
+
+            return Ok(new
+            {
+                Message = "Yeni doğrulama kodunuz e-posta adresinize gönderilmiştir."
+            });
+
+        }
+        }
 }

@@ -14,6 +14,7 @@ namespace SmartWalletAI.Domain.Enums
         Fatura = 3,
         Eğlence = 4,
         Eğitim = 5,
-        Sağlık = 6
+        Sağlık = 6,
+        ParaTransferi =7
     }
 }

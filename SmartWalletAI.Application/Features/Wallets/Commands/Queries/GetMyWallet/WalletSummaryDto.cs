@@ -12,5 +12,7 @@ namespace SmartWalletAI.Application.Features.Wallets.Commands.Queries.GetMyWalle
         public string IBAN { get; set; }
         public decimal Balance { get; set; }
 
+        public string FullName { get; set; }
+
     }
 }

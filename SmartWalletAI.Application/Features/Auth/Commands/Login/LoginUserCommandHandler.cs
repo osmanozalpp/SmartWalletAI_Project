@@ -35,16 +35,14 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.Login
            if (!validationResult.IsValid)
             {
                 throw new ValidationException(validationResult.Errors);
-            }
-
-            
+            }          
 
 
             var user = await _userRepository.GetAsync(u=> u.Email == request.Email);
 
             if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             {
-                throw new Exception("Kullanıcı adı veya şifre hatalı.");
+                throw new Exception("Gmail veya şifre hatalı.");
             }
 
             if (!user.IsEmailVerified)

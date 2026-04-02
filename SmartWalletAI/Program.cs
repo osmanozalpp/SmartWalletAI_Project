@@ -13,6 +13,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddApplicationServices();
 
+builder.Services.AddMemoryCache();
+
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
 
@@ -55,7 +57,7 @@ builder.Services.AddAuthentication(options =>
     {
         OnAuthenticationFailed = context =>
         {
-            Console.WriteLine($"\n\n=== DÝKKAT: GÜVENLÝK GÖREVLÝSÝ TOKEN'I REDDETTÝ! ===");
+            Console.WriteLine($"\n\n=== TOKEN REDDEDÝLDÝ! ===");
             Console.WriteLine($"SEBEP: {context.Exception.Message}");
             Console.WriteLine($"=====================================================\n\n");
             return Task.CompletedTask;

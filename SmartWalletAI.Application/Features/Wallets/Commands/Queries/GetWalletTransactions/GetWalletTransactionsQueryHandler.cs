@@ -51,6 +51,7 @@ namespace SmartWalletAI.Application.Features.Wallets.Commands.Queries.GetWalletT
                 Id = t.Id,
                 Amount = t.Amount,
                 TransactionTime = t.TransactionTime,
+                Category = (int)t.Category,
                 Description = t.Description,
                 IsIncoming = t.ReceiverWalletId == request.WalletId
             }).ToList();

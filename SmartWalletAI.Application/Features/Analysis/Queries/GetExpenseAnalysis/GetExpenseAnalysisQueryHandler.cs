@@ -36,7 +36,7 @@ using System.Threading.Tasks;
 
             
             var monthlyExpenses = await _transactionRepository.GetAllAsQueryable()
-                .AsNoTracking()
+                .AsNoTracking() // sadece okunacak veriler değişiklik yapılmayacak bu yüzden takip etmeye gerek yok performans için AsNoTracking ekledik
                 .Where(t => t.SenderWalletId == userWallet.Id && 
                             t.TransactionTime.Month == currentMonth &&
                             t.TransactionTime.Year == currentYear)
@@ -50,7 +50,7 @@ using System.Threading.Tasks;
                 };
             }
             var totalExpense = monthlyExpenses.Sum(t => t.Amount);
-            var currentDay = DateTime.UtcNow.Day == 1 ? 1 : DateTime.UtcNow.Day; // ayın 1inde bölme hatasını önlemek için
+            var currentDay = DateTime.UtcNow.Day;
 
             var groupedCategories = monthlyExpenses
                 .GroupBy(t => t.Category)

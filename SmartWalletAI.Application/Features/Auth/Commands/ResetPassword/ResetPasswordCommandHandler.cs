@@ -36,6 +36,8 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.ResetPassword
             
             await _userRepository.UpdateAsync(user);
 
+            await _userRepository.SaveChangesAsync();
+
             return true;
 
         }

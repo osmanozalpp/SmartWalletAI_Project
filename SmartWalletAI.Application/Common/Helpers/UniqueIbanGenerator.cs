@@ -13,7 +13,7 @@ namespace SmartWalletAI.Application.Common.Helpers
         public static string Generate()
         {
             string countryCode = "TR";
-            string bankCode = "00001"; 
+            string bankCode = "00034"; 
             string reserveDigit = "0";
 
             

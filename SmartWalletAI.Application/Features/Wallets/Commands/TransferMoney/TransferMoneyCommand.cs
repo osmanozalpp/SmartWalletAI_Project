@@ -26,5 +26,12 @@ namespace SmartWalletAI.Application.Features.Wallets.Commands.TransferMoney
         public bool Success { get; set; }
         public string Message { get; set; }
         public decimal NewBalance { get; set; }
+
+        public string ReferenceNumber { get; set; } = string.Empty;
+        public DateTime TransactionDate { get; set; }
+        public string ReceiverName { get; set; } = string.Empty;
+        public string ReceiverIban { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public string? Description { get; set; }
     }
 }

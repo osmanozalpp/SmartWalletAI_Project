@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using Microsoft.EntityFrameworkCore;
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Domain.Entities;
 using System;
@@ -21,7 +22,10 @@ namespace SmartWalletAI.Application.Features.Wallets.Commands.Queries.GetMyWalle
 
         public async Task<WalletSummaryDto> Handle(GetMyWalletQuery request, CancellationToken cancellationToken)
         {
-           var wallet = await _walletRepository.GetAsync(w=> w.UserId == request.UserId);
+            
+            var wallet = await _walletRepository.GetAllAsQueryable()
+                .Include(w => w.User)
+                .FirstOrDefaultAsync(w => w.UserId == request.UserId, cancellationToken);
 
             if (wallet == null)
             {
@@ -32,7 +36,8 @@ namespace SmartWalletAI.Application.Features.Wallets.Commands.Queries.GetMyWalle
             {
                 Id = wallet.Id,
                 IBAN = wallet.IBAN,
-                Balance = wallet.Balance
+                Balance = wallet.Balance,
+                FullName = wallet.User.Name 
             };
         }
     }

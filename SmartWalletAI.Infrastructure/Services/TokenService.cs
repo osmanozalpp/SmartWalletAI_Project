@@ -37,8 +37,10 @@ namespace SmartWalletAI.Infrastructure.Services
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-            };
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                
+
+        };
             var token = new JwtSecurityToken(
                 issuer: issuer,
                 audience: audience,
@@ -67,7 +69,7 @@ namespace SmartWalletAI.Infrastructure.Services
                 ValidateIssuer = false,
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!)),
-                ValidateLifetime = false // DİKKAT: Burada sürenin dolmuş olmasını bilerek görmezden geliyoruz!
+                ValidateLifetime = false 
             };
 
             var tokenHandler = new JwtSecurityTokenHandler();
