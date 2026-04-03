@@ -16,15 +16,17 @@ namespace SmartWalletAI.Application.Features.Wallets.Commands.TransferMoney
     {
         private readonly IRepository<Wallet> _walletRepository;
         private readonly IRepository<Transaction> _transactionRepository;
+        private readonly IRepository<User> _userRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IValidator<TransferMoneyCommand> _validator;
 
-        public TransferMoneyCommandHandler(IRepository<Wallet> walletRepository, IUnitOfWork unitOfWork, IValidator<TransferMoneyCommand> validator, IRepository<Transaction> transactionRepository)
+        public TransferMoneyCommandHandler(IRepository<Wallet> walletRepository, IUnitOfWork unitOfWork, IValidator<TransferMoneyCommand> validator, IRepository<Transaction> transactionRepository, IRepository<User> userRepository)
         {
             _walletRepository = walletRepository;
             _unitOfWork = unitOfWork;
             _validator = validator;
             _transactionRepository = transactionRepository;
+            _userRepository = userRepository;
         }
 
         public async Task<TransferMoneyResponse> Handle(TransferMoneyCommand request, CancellationToken cancellationToken)
@@ -42,19 +44,33 @@ namespace SmartWalletAI.Application.Features.Wallets.Commands.TransferMoney
             if (senderWallet.Id == receiverWallet.Id) throw new Exception("Kendi kendinize para gönderemezsiniz.");
             if (senderWallet.Balance < request.Amount) throw new Exception("Yetersiz bakiye!");
 
-            using var dbTransaction = await _unitOfWork.BeginTransactionAsync();
+            var senderUser = await _userRepository.GetAsync(u => u.Id == senderWallet.UserId);
+            var receiverUser = await _userRepository.GetAsync(u => u.Id == receiverWallet.UserId);
 
-            
+            using var dbTransaction = await _unitOfWork.BeginTransactionAsync();
 
             try
             {
-
                 senderWallet.Balance -= request.Amount;
                 await _walletRepository.UpdateAsync(senderWallet);
 
                 receiverWallet.Balance += request.Amount;
                 await _walletRepository.UpdateAsync(receiverWallet);
 
+                
+                string generatedReference;
+                bool isReferenceExists;
+                var random = new Random();
+
+                do
+                {                  
+                    generatedReference = "#TR-" + random.Next(1000000, 9999999).ToString();
+                    
+                    var existingTransaction = await _transactionRepository.GetAsync(t => t.ReferenceNumber == generatedReference);
+                    isReferenceExists = existingTransaction != null;
+
+                } while (isReferenceExists); 
+                                             
                 var transactionRecord = new Transaction
                 {
                     Id = Guid.NewGuid(),
@@ -63,11 +79,11 @@ namespace SmartWalletAI.Application.Features.Wallets.Commands.TransferMoney
                     Amount = request.Amount,
                     TransactionTime = DateTime.UtcNow,
                     Description = request.Description ?? "Para Transferi",
-                    Category = request.Category
+                    Category = request.Category,
+                    ReferenceNumber = generatedReference 
                 };
 
                 await _transactionRepository.AddAsync(transactionRecord);
-
 
                 await _unitOfWork.SaveChangesAsync();
                 await dbTransaction.CommitAsync();
@@ -75,8 +91,16 @@ namespace SmartWalletAI.Application.Features.Wallets.Commands.TransferMoney
                 return new TransferMoneyResponse
                 {
                     Success = true,
-                    Message = "Para transferi başarıyla gerçekleşti.",
-                    NewBalance = senderWallet.Balance
+                    Message = "Transfer işlemi başarıyla gerçekleştirildi.",
+                    NewBalance =senderWallet.Balance,
+                    SenderName = senderUser?.Name ?? "Bilinmeyen Gönderen", 
+                    ReceiverName = receiverUser?.Name ?? "Bilinmeyen Alıcı",
+                    ReceiverIban = request.ReceiverIban,
+                    Amount = request.Amount,
+                    TransactionDate = transactionRecord.TransactionTime,
+                    ReferenceNo = transactionRecord.ReferenceNumber,
+                    Category = transactionRecord.Category,
+                    Description = transactionRecord.Description ?? "-"
                 };
             }
             catch (Exception ex)

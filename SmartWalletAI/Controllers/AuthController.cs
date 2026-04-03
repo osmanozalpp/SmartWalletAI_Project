@@ -1,14 +1,17 @@
 ﻿using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using SmartWalletAI.Application.Features.Auth.Commands.ForgotPassword;
 using SmartWalletAI.Application.Features.Auth.Commands.Login;
+using SmartWalletAI.Application.Features.Auth.Commands.Logout;
 using SmartWalletAI.Application.Features.Auth.Commands.Register;
 using SmartWalletAI.Application.Features.Auth.Commands.ResendVerificationCode;
 using SmartWalletAI.Application.Features.Auth.Commands.ResetPassword;
 using SmartWalletAI.Application.Features.Auth.Commands.VerifyEmail;
+using System.Security.Claims;
 
 namespace SmartWalletAI.WebAPI.Controllers
 {
@@ -21,7 +24,7 @@ namespace SmartWalletAI.WebAPI.Controllers
         public AuthController(IMediator mediator)
         {
             _mediator = mediator;
-            
+
         }
 
         [HttpPost("register")]
@@ -65,7 +68,7 @@ namespace SmartWalletAI.WebAPI.Controllers
             });
         }
         [HttpPost("forgot-password")]
-        [EnableRateLimiting("AuthPolicy")]  
+        [EnableRateLimiting("AuthPolicy")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordCommand command)
         {
             var result = await _mediator.Send(command);
@@ -86,7 +89,24 @@ namespace SmartWalletAI.WebAPI.Controllers
             {
                 Message = "Yeni doğrulama kodunuz e-posta adresinize gönderilmiştir."
             });
+        }
 
+        [Authorize]
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(userIdString))
+                return Unauthorized();
+
+            var result = await _mediator.Send(new LogoutCommand { UserId = Guid.Parse(userIdString) });
+
+            return Ok(new
+            {
+                Message = "Başarıyla çıkış yapıldı.",
+                Success = result
+            });
         }
-        }
+    }
 }

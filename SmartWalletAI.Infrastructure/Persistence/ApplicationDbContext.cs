@@ -23,6 +23,22 @@ namespace SmartWalletAI.Infrastructure.Persistence
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            base.OnModelCreating(modelBuilder);
+
+           
+            modelBuilder.Entity<Transaction>()
+                .HasOne(t => t.SenderWallet)
+                .WithMany() 
+                .HasForeignKey(t => t.SenderWalletId)
+                .OnDelete(DeleteBehavior.Restrict); 
+
+            
+            modelBuilder.Entity<Transaction>()
+                .HasOne(t => t.ReceiverWallet)
+                .WithMany()
+                .HasForeignKey(t => t.ReceiverWalletId)
+                .OnDelete(DeleteBehavior.Restrict); 
+
             modelBuilder.Entity<Wallet>()
             .HasIndex(a => a.IBAN)
             .IsUnique();

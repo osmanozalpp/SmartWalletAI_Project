@@ -7,9 +7,11 @@ using SmartWalletAI.Application.Features.Analysis.Queries.GetExpenseAnalysis;
 using SmartWalletAI.Application.Features.Wallets.Commands.Queries.GetMyWallet;
 using SmartWalletAI.Application.Features.Wallets.Commands.Queries.GetRecipients;
 using SmartWalletAI.Application.Features.Wallets.Commands.Queries.GetWalletTransactions;
+using SmartWalletAI.Application.Features.Wallets.Commands.Queries.GetMaskedOwnerName;
 using SmartWalletAI.Application.Features.Wallets.Commands.SaveContact;
 using SmartWalletAI.Application.Features.Wallets.Commands.TransferMoney;
 using System.Security.Claims;
+using SmartWalletAI.Application.Features.Wallets.Commands.RemoveContact;
 
 namespace SmartWalletAI.WebAPI.Controllers
 {
@@ -47,7 +49,7 @@ namespace SmartWalletAI.WebAPI.Controllers
         [HttpPost("transfer")]
         public async Task<IActionResult> TransferMoney([FromBody] TransferMoneyCommand command)
         {
-           
+
             var userIdFromToken = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (string.IsNullOrEmpty(userIdFromToken))
@@ -60,7 +62,7 @@ namespace SmartWalletAI.WebAPI.Controllers
         }
 
         [HttpGet("{walletId}/transactions")]
-        public async Task<IActionResult> GetWalletTransactions([FromRoute] Guid walletId , [FromQuery] GetWalletTransactionsQuery query)
+        public async Task<IActionResult> GetWalletTransactions([FromRoute] Guid walletId, [FromQuery] GetWalletTransactionsQuery query)
         {
             query.WalletId = walletId;
 
@@ -72,14 +74,14 @@ namespace SmartWalletAI.WebAPI.Controllers
         [HttpGet("analysis")]
         public async Task<IActionResult> GetExpenseAnalysis()
         {
-            //kullanıcının Id si url den değil tokendan gelir.
+            //kullanıcının Id si url den değil tokendan alır.
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
 
-            if(string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString , out Guid userId))
+            if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out Guid userId))
             {
                 return Unauthorized(new { Message = "Geçersiz veya eksik token" });
-            }    
+            }
 
             //query oluşturuldu ve mediatra fırlatıldı
             var query = new GetExpenseAnalysisQuery { UserId = userId };
@@ -93,7 +95,7 @@ namespace SmartWalletAI.WebAPI.Controllers
         {
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            if(string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString , out Guid userId))
+            if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out Guid userId))
             {
                 return Unauthorized(new { Message = "Geçersiz veya eksik token" });
             }
@@ -115,8 +117,9 @@ namespace SmartWalletAI.WebAPI.Controllers
             command.UserId = userId;
 
             var result = await _mediator.Send(command);
-            string returnMessage = command.IsFavorite? "Kişi favorilere başarıyla eklendi." : "Kişi başarıyla kaydedildi.";
-                                                                                  
+            string returnMessage = command.IsFavorite ? "Kişi favorilere başarıyla eklendi." : "Kişi başarıyla kaydedildi.";
+
+
             return Ok(new
             {
                 Message = returnMessage,
@@ -124,5 +127,32 @@ namespace SmartWalletAI.WebAPI.Controllers
             });
 
         }
+        [HttpGet("iban/{iban}/owner-name")]
+        public async Task<IActionResult> GetMaskedOwnerName([FromRoute] string iban)
+        {
+            var query = new GetMaskedOwnerNameQuery { Iban = iban };
+            var result = await _mediator.Send(query);
+
+            return Ok(new { MaskedName = result });
+
         }
-}
+        [HttpDelete("remove-contact/{iban}")]
+        public async Task<IActionResult> RemoveContact(string iban)
+        {
+            
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdString))
+            {
+                return Unauthorized("Kullanıcı kimliği doğrulanamadı.");
+            }          
+            var result = await _mediator.Send(new RemoveContactCommand
+            {
+                Iban = iban,
+                UserId = Guid.Parse(userIdString) 
+            });
+
+            
+            return Ok(result);
+        }
+    }
+    }
