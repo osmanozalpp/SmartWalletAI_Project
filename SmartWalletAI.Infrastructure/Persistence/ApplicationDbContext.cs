@@ -21,11 +21,17 @@ namespace SmartWalletAI.Infrastructure.Persistence
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<SavedContact> SavedContacts { get; set; }
 
+        public DbSet<Asset> Assets { get; set; }
+        public DbSet<MarketPrice> MarketPrices { get; set; }
+        public DbSet<TransactionHistory> TransactionHistorys { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-           
+            modelBuilder.Entity<User>().HasQueryFilter(u => !u.IsDeleted);
+            modelBuilder.Entity<Wallet>().HasQueryFilter(w => !w.IsDeleted);
+
             modelBuilder.Entity<Transaction>()
                 .HasOne(t => t.SenderWallet)
                 .WithMany() 

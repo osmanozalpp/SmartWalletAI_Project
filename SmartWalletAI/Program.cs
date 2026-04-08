@@ -7,6 +7,7 @@ using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Infrastructure;
 using SmartWalletAI.Infrastructure.Services;
 using SmartWalletAI.WebAPI.Middlewares;
+using SmartWalletAI.WebAPI.Workers;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -64,6 +65,9 @@ builder.Services.AddAuthentication(options =>
         }
     };
 });
+
+builder.Services.AddHostedService<MarketDataWorker>();
+builder.Services.AddHttpClient<IMarketDataService, CollectApiMarketService>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

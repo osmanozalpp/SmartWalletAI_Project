@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace SmartWalletAI.Application.Features.Auth.Commands.ResetPassword
 {
-    public class ResetPasswordCommand : IRequest<bool>
+    public class ResetPasswordCommand : IRequest<ResetPasswordResponse>
     {
         public string Email { get; set; }
         public string Code { get; set; }

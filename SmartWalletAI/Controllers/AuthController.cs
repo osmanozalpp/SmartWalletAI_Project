@@ -4,13 +4,16 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using SmartWalletAI.Application.Features.Auth.Commands.DeleteAccount;
 using SmartWalletAI.Application.Features.Auth.Commands.ForgotPassword;
 using SmartWalletAI.Application.Features.Auth.Commands.Login;
 using SmartWalletAI.Application.Features.Auth.Commands.Logout;
+using SmartWalletAI.Application.Features.Auth.Commands.ReactivateAccount;
 using SmartWalletAI.Application.Features.Auth.Commands.Register;
 using SmartWalletAI.Application.Features.Auth.Commands.ResendVerificationCode;
 using SmartWalletAI.Application.Features.Auth.Commands.ResetPassword;
 using SmartWalletAI.Application.Features.Auth.Commands.VerifyEmail;
+using SmartWalletAI.Application.Features.Auth.Commands.VerifyResetCode;
 using System.Security.Claims;
 
 namespace SmartWalletAI.WebAPI.Controllers
@@ -55,29 +58,40 @@ namespace SmartWalletAI.WebAPI.Controllers
                 Succes = result
             });
         }
-        [HttpPost("reset-password")]
-        [EnableRateLimiting("AuthPolicy")]
-        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordCommand command)
-        {
-            var result = await _mediator.Send(command);
 
-            return Ok(new
-            {
-                Message = "Şifreniz başarıyla güncellendi. Yeni şifrenizle giriş yapabilirsiniz.",
-                Succes = result
-            });
-        }
         [HttpPost("forgot-password")]
         [EnableRateLimiting("AuthPolicy")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordCommand command)
         {
-            var result = await _mediator.Send(command);
+            await _mediator.Send(command);
+            
+            return Ok(new { Message = "Doğrulama kodu e-posta adresinize gönderildi.", Succes = true });
+        }
 
-            return Ok(new
+        [HttpPost("verify-code")]
+        [EnableRateLimiting("AuthPolicy")]
+        public async Task<IActionResult> VerifyCode([FromBody] VerifyResetCodeCommand command)
+        {
+            var response =await _mediator.Send(command);
+
+            if (!response.IsSucces)
+                return BadRequest(new { Message = response.Message, Succes = false });
+
+            return Ok(new { Message = response.Message, Succes = true });
+        }
+
+        [HttpPost("reset-password")]
+        [EnableRateLimiting("AuthPolicy")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordCommand command)
+        {         
+            var response = await _mediator.Send(command);
+
+            if (!response.IsSuccess)
             {
-                Message = "Eğer bu email sistemimizde kayıtlıysa şifre sıfırlama kodunuz gönderilmiştir.",
-                Success = result
-            });
+                
+                return BadRequest(new { Message = response.Message, Success = false });
+            }            
+            return Ok(new { Message = response.Message, Success = true });
         }
 
         [HttpPost("resend-verification-code")]
@@ -108,5 +122,33 @@ namespace SmartWalletAI.WebAPI.Controllers
                 Success = result
             });
         }
-    }
+        [Authorize]
+        [HttpDelete("delete-account")]
+        public async Task<IActionResult> DeleteAccount()
+        {
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(userIdString))
+                return Unauthorized();
+
+            var result = await _mediator.Send(new DeleteAccountCommand { UserId = Guid.Parse(userIdString) });
+
+            return Ok(new
+            {
+                Message = "Hesabınız başarıyla silindi.",
+                Success = result
+            });
+        }
+        [HttpPost("reactivate-account")]
+        public async Task<IActionResult> ReactivateAccount([FromBody] ReactivateAccountCommand command)
+        {
+            var result = await _mediator.Send(command);
+
+            return Ok(new
+            {
+                Message = "Hesabınız başarıyla reaktive edildi. Artık giriş yapabilirsiniz.",
+                Success = result
+            });
+        }
+        }
 }

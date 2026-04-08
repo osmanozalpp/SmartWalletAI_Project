@@ -51,13 +51,15 @@ namespace SmartWalletAI.Application.Features.Wallets.Commands.TransferMoney
 
             try
             {
-                senderWallet.Balance -= request.Amount;
+                // Gönderen cüzdandan düş
+                senderWallet.Withdraw(request.Amount);
                 await _walletRepository.UpdateAsync(senderWallet);
 
-                receiverWallet.Balance += request.Amount;
+                // Alıcı cüzdana ekle
+                receiverWallet.Deposit(request.Amount);
                 await _walletRepository.UpdateAsync(receiverWallet);
 
-                
+
                 string generatedReference;
                 bool isReferenceExists;
                 var random = new Random();

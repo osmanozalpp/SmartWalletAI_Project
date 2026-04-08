@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SmartWalletAI.Application.Common.Interfaces;
+using SmartWalletAI.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,14 +26,18 @@ namespace SmartWalletAI.Infrastructure.Persistence
         }
         public Task DeleteAsync(T entity)
         {
-            _dbSet.Remove(entity);
-            return Task.CompletedTask;
-        }
+            if (entity is BaseEntity baseEntity)
+            {
+                baseEntity.IsDeleted = true;
+                _dbSet.Update(entity);
+            }
+            else
+            {
+                _dbSet.Remove(entity);
+            }
 
-        public async Task<T?> GetAsync(Expression<Func<T, bool>> predicate)
-        {
-          return await _dbSet.FirstOrDefaultAsync(predicate); 
-        }
+            return Task.CompletedTask;
+        }   
 
         public async Task<T?> GetByIdAsync(Guid id)
         {
@@ -51,5 +56,19 @@ namespace SmartWalletAI.Infrastructure.Persistence
         {
             return _context.Set<T>().AsQueryable();
         }
+
+        public async Task<T?> GetAsync(Expression<Func<T, bool>> predicate, bool ignoreFilters = false)
+        {
+            IQueryable<T> query = _dbSet;
+
+            if (ignoreFilters)
+            {
+                query = query.IgnoreQueryFilters();
+            }
+
+            return await query.FirstOrDefaultAsync(predicate);
+        }
+
+        
     }
 }
