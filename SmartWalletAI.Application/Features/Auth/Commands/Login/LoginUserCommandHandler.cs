@@ -19,46 +19,51 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.Login
         private readonly IRepository<User> _userRepository;
         private readonly ITokenService _tokenService;
         private readonly IValidator<LoginUserCommand> _validator;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public LoginUserCommandHandler(IRepository<User> userRepository , ITokenService tokenService , IValidator<LoginUserCommand> validator)
+        public LoginUserCommandHandler(IRepository<User> userRepository, ITokenService tokenService, IValidator<LoginUserCommand> validator, IUnitOfWork unitOfWork)
         {
             _userRepository = userRepository;
             _tokenService = tokenService;
             _validator = validator;
+            _unitOfWork = unitOfWork;
         }
 
-       
+
         public async Task<LoginUserResponse> Handle(LoginUserCommand request, CancellationToken cancellationToken)
         {
-           var validationResult = await _validator.ValidateAsync(request, cancellationToken);
-
-           if (!validationResult.IsValid)
+            
+            var validationResult = await _validator.ValidateAsync(request, cancellationToken);
+            if (!validationResult.IsValid)
             {
                 throw new ValidationException(validationResult.Errors);
-            }          
+            }
 
-
-            var user = await _userRepository.GetAsync(u=> u.Email == request.Email);
+            var user = await _userRepository.GetAsync(u => u.Email == request.Email, ignoreFilters: true);
 
             if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             {
                 throw new Exception("Gmail veya şifre hatalı.");
             }
-
+         
+            if (user.IsDeleted)
+            {            
+                throw new Exception("Bu hesap daha önce silinmiş. Tekrar aktif etmek ister misiniz?");
+            }       
+           
             if (!user.IsEmailVerified)
             {
                 throw new Exception("Lütfen önce emailinize gelen kod ile hesabınızı doğrulayın.");
-            }
-
+            }          
             var accesToken = _tokenService.GenerateAccesToken(user);
             var refreshToken = _tokenService.GenerateRefreshToken();
             var refreshTokenExpiration = DateTime.UtcNow.AddDays(7);
 
             user.RefreshToken = refreshToken;
-            user.RefreshTokenExpiryTime = refreshTokenExpiration;
-
+            user.RefreshTokenExpiryTime = refreshTokenExpiration;           
             await _userRepository.UpdateAsync(user);
-            await _userRepository.SaveChangesAsync();
+           
+            await _unitOfWork.SaveChangesAsync();
 
             return new LoginUserResponse
             {
@@ -66,7 +71,6 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.Login
                 RefreshToken = refreshToken,
                 RefreshTokenExpiration = refreshTokenExpiration,
             };
-
         }
     }
-}
+    }

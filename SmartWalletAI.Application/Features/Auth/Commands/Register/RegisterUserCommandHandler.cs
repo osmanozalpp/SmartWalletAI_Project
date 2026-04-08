@@ -15,17 +15,19 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.Register
     {
         private readonly IRepository<User> _userRepository;
         private readonly IRepository<Wallet> _walletRepository;
-        private readonly IEmailService _emailService; 
+        private readonly IEmailService _emailService;
+        private readonly IUnitOfWork _unitOfWork;
 
         
         public RegisterUserCommandHandler(
             IRepository<User> userRepository,
             IRepository<Wallet> walletRepository,
-            IEmailService emailService)
+            IEmailService emailService , IUnitOfWork unitOfWork)
         {
             _userRepository = userRepository;
             _walletRepository = walletRepository;
             _emailService = emailService;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<RegisterUserResponse> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
@@ -58,7 +60,7 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.Register
                 await _walletRepository.AddAsync(wallet);
 
                
-                await _userRepository.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync();
 
                 
                 string mailBody = $@"

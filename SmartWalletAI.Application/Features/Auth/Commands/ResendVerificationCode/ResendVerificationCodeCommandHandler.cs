@@ -15,12 +15,13 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.ResendVerificationCod
     {
         private readonly IRepository<User> _userRepository;
         private readonly IEmailService _emailService;
-       
-        public ResendVerificationCodeCommandHandler(IRepository<User> userRepository , IEmailService emailService)
+        private readonly IUnitOfWork _unitOfWork;
+
+        public ResendVerificationCodeCommandHandler(IRepository<User> userRepository , IEmailService emailService, IUnitOfWork unitOfWork)
         {
             _userRepository = userRepository;
             _emailService = emailService;
-           
+            _unitOfWork = unitOfWork;
         }
 
 
@@ -45,7 +46,7 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.ResendVerificationCod
             user.EmailVerificationCodeExpiry = DateTime.UtcNow.AddMinutes(15);
 
             await _userRepository.UpdateAsync(user);
-            await _userRepository.SaveChangesAsync();
+            await _unitOfWork.SaveChangesAsync();
 
             await _emailService.SendEmailAsync(user.Email, "Yeni Doğrulama Kodu", $"Yeni doğrulama kodunuz: {newVerificationCode}");
 

@@ -1,45 +1,54 @@
 ﻿using MediatR;
-using Microsoft.AspNetCore.Identity;
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SmartWalletAI.Application.Features.Auth.Commands.ResetPassword
 {
-    public class ResetPasswordCommandHandler : IRequestHandler<ResetPasswordCommand, bool>
+    public class ResetPasswordCommandHandler : IRequestHandler<ResetPasswordCommand, ResetPasswordResponse>
     {
         private readonly IRepository<User> _userRepository;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public ResetPasswordCommandHandler(IRepository<User> userRepository)
+        public ResetPasswordCommandHandler(IRepository<User> userRepository, IUnitOfWork unitOfWork)
         {
             _userRepository = userRepository;
+            _unitOfWork = unitOfWork;
         }
-        public async Task<bool> Handle(ResetPasswordCommand request, CancellationToken cancellationToken)
+
+        public async Task<ResetPasswordResponse> Handle(ResetPasswordCommand request, CancellationToken cancellationToken)
         {
             var user = await _userRepository.GetAsync(u => u.Email == request.Email);
-
+         
             if (user == null || user.PasswordResetCode != request.Code)
-                throw new Exception("Geçersiz doğrulama kodu.");
+            {
+                return new ResetPasswordResponse
+                {
+                    IsSuccess = false,
+                    Message = "Geçersiz doğrulama kodu."
+                };
+            }
 
             if (user.PasswordResetCodeExpiry < DateTime.UtcNow)
-                throw new Exception("Kodun süresi dolmuş. Lütfen tekrar şifre sıfırlama talebinde bulunun.");
+            {
+                return new ResetPasswordResponse
+                {
+                    IsSuccess = false,
+                    Message = "Kodun süresi dolmuş. Lütfen tekrar şifre sıfırlama talebinde bulunun."
+                };
+            }
            
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
-
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);         
             user.PasswordResetCode = null;
             user.PasswordResetCodeExpiry = null;
 
-            
             await _userRepository.UpdateAsync(user);
-
-            await _userRepository.SaveChangesAsync();
-
-            return true;
-
+            await _unitOfWork.SaveChangesAsync();
+          
+            return new ResetPasswordResponse
+            {
+                IsSuccess = true,
+                Message = "Şifreniz başarıyla güncellendi. Yeni şifrenizle giriş yapabilirsiniz."
+            };
         }
     }
 }

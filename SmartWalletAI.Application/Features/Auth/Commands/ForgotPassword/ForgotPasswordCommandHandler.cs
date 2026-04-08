@@ -13,19 +13,20 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.ForgotPassword
     {
         private readonly IRepository<User> _userRepository;
         private readonly IEmailService _emailService;
-
-        public ForgotPasswordCommandHandler(IRepository<User> userRepository , IEmailService emailService)
+        private readonly IUnitOfWork _unitOfWork;
+        public ForgotPasswordCommandHandler(IRepository<User> userRepository , IEmailService emailService , IUnitOfWork unitOfWork)
         {
             _userRepository = userRepository;
             _emailService = emailService;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<bool> Handle(ForgotPasswordCommand request, CancellationToken cancellationToken)
         {
            var user = await _userRepository.GetAsync(u=> u.Email == request.Email);
 
-            // GÜVENLİK SIRRI: Hackerların sistemde kimin kayıtlı olduğunu bulmasını engellemek için
-            // Kullanıcı yoksa bile "hata" dönmüyoruz. İşlem başarılıymış gibi davranıyoruz.
+            /* GÜVENLİK SIRRI
+             Kullanıcı yoksa bile "hata" dönmüyoruz. İşlem başarılıymış gibi davranıyoruz. */
             if (user == null)
                 return true;
 
@@ -41,7 +42,7 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.ForgotPassword
             <h2>{resetCode}</h2>
             <p>Eğer bu işlemi siz yapmadıysanız bu maili dikkate almayın.</p>";
 
-            await _userRepository.SaveChangesAsync();
+            await _unitOfWork.SaveChangesAsync();
 
             await _emailService.SendEmailAsync(user.Email, "SmartWallet AI - Şifre Sıfırlama", mailBody);
 

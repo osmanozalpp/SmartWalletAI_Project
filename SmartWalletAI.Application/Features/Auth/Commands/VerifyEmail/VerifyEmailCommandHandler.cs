@@ -12,10 +12,12 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.VerifyEmail
     public class VerifyEmailCommandHandler : IRequestHandler<VerifyEmailCommand, bool>
     {
         private readonly IRepository<User> _userRepository;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public VerifyEmailCommandHandler(IRepository<User> userRepository)
+        public VerifyEmailCommandHandler(IRepository<User> userRepository , IUnitOfWork unitOfWork)
         {
             _userRepository = userRepository;
+            _unitOfWork = unitOfWork;
         }
         public async Task<bool> Handle(VerifyEmailCommand request, CancellationToken cancellationToken)
         {
@@ -35,7 +37,7 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.VerifyEmail
             await _userRepository.UpdateAsync(user);
 
             
-            await _userRepository.SaveChangesAsync();
+            await _unitOfWork.SaveChangesAsync();
 
             return true;
         }
