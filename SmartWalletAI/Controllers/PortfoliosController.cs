@@ -35,10 +35,17 @@ namespace SmartWalletAI.WebAPI.Controllers
 
             return Ok(result);
         }
-
         [HttpPost("buy")]
         public async Task<IActionResult> BuyAsset([FromBody] BuyAssetCommand command)
         {
+            
+            var userIdFromToken = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(userIdFromToken))
+                return Unauthorized("Kullanıcı bilgisi token içerisinde bulunamadı.");
+
+            command.UserId = Guid.Parse(userIdFromToken);
+
             var result = await _mediator.Send(command);
 
             return Ok(new
@@ -47,9 +54,17 @@ namespace SmartWalletAI.WebAPI.Controllers
                 Message = "Alım işlemi başarıyla gerçekleşti."
             });
         }
+
         [HttpPost("sell")]
         public async Task<IActionResult> SellAsset([FromBody] SellAssetCommand command)
         {
+            var userIdFromToken = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(userIdFromToken))
+                return Unauthorized("Kullanıcı bilgisi token içerisinde bulunamadı.");
+
+            command.UserId = Guid.Parse(userIdFromToken);
+
             var result = await _mediator.Send(command);
 
             return Ok(new

@@ -32,69 +32,62 @@ namespace SmartWalletAI.Infrastructure.Services
 
             try
             {
-                
+               
                 var currencyResponse = await _httpClient.GetAsync("economy/allCurrency", cancellationToken);
-
                 if (currencyResponse.IsSuccessStatusCode)
                 {
                     var currencyData = await currencyResponse.Content.ReadFromJsonAsync<CollectApiResult>(cancellationToken: cancellationToken);
                     if (currencyData?.Success == true)
                     {
-
-                        var usd = currencyData.Result.FirstOrDefault(c => c.Code == "USD");
-                        if (usd != null)
-                            prices.Add(new MarketPriceDto { AssetType = AssetType.USD, BuyPrice = usd.Buying, SellPrice = usd.Selling });
-
-                        var eur = currencyData.Result.FirstOrDefault(c => c.Code == "EUR");
-                        if (eur != null)
-                            prices.Add(new MarketPriceDto { AssetType = AssetType.EUR, BuyPrice = eur.Buying, SellPrice = eur.Selling });
+                        AddPriceIfExist(prices, currencyData.Result, "USD", AssetType.USD);
+                        AddPriceIfExist(prices, currencyData.Result, "EUR", AssetType.EUR);
+                        AddPriceIfExist(prices, currencyData.Result, "GBP", AssetType.GBP);
+                        AddPriceIfExist(prices, currencyData.Result, "CHF", AssetType.CHF);
+                        AddPriceIfExist(prices, currencyData.Result, "SAR", AssetType.SAR);
+                        AddPriceIfExist(prices, currencyData.Result, "KWD", AssetType.KWD);
                     }
-                }
-                else
-                {
-                    await LogApiError("DÖVİZ", currencyResponse, cancellationToken);
                 }
 
                 
                 var goldResponse = await _httpClient.GetAsync("economy/goldPrice", cancellationToken);
-
                 if (goldResponse.IsSuccessStatusCode)
                 {
                     var goldData = await goldResponse.Content.ReadFromJsonAsync<CollectApiResult>(cancellationToken: cancellationToken);
                     if (goldData?.Success == true)
                     {
-                     
-                        var gramGold = goldData.Result.FirstOrDefault(c => c.Name == "Gram Altın");
-                        if (gramGold != null)
-                            prices.Add(new MarketPriceDto { AssetType = AssetType.Gold, BuyPrice = gramGold.Buying, SellPrice = gramGold.Selling });
-
-                        
-                        var silver = goldData.Result.FirstOrDefault(c => c.Name == "Gümüş")
-                                     ?? goldData.Result.FirstOrDefault(c => c.Name == "Has Gümüş");
-
-                        if (silver != null)
-                            prices.Add(new MarketPriceDto { AssetType = AssetType.Silver, BuyPrice = silver.Buying, SellPrice = silver.Selling });
+                        AddPriceIfExist(prices, goldData.Result, "Gram Altın", AssetType.Gold);
+                        AddPriceIfExist(prices, goldData.Result, "Gümüş", AssetType.Silver, "Has Gümüş");
                     }
-                }
-                else
-                {
-                    await LogApiError("ALTIN/METAL", goldResponse, cancellationToken);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"\n=== [KRİTİK] BAĞLANTI HATASI: {ex.Message} ===\n");
+                Console.WriteLine($"\n=== BAĞLANTI HATASI: {ex.Message} ===\n");
             }
 
             return prices;
         }
 
-        private async Task LogApiError(string type, HttpResponseMessage response, CancellationToken ct)
+        private void AddPriceIfExist(List<MarketPriceDto> list, List<CollectApiCurrency> results, string key, AssetType type, string alternativeKey = null)
         {
-            var errorDetail = await response.Content.ReadAsStringAsync(ct);
-            Console.WriteLine($"\n=== COLLECT API {type} HATASI (KOD: {response.StatusCode}) ===");
-            Console.WriteLine($"DETAY: {errorDetail}");
-            Console.WriteLine($"==================================\n");
+            if (results == null) return;
+
+           
+            var item = results.FirstOrDefault(c =>
+                (c.Code != null && c.Code.Equals(key, StringComparison.OrdinalIgnoreCase)) ||
+                (c.Name != null && c.Name.Equals(key, StringComparison.OrdinalIgnoreCase)) ||
+                (alternativeKey != null && c.Name != null && c.Name.Equals(alternativeKey, StringComparison.OrdinalIgnoreCase)));
+
+            if (item != null)
+            {
+                list.Add(new MarketPriceDto
+                {
+                    AssetType = type,
+                    BuyPrice = item.Buying,
+                    SellPrice = item.Selling,
+                    DailyChangePercentage = item.Rate 
+                });
+            }
         }
     }
-}
+}  

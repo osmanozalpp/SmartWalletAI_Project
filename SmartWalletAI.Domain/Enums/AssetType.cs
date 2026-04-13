@@ -12,6 +12,10 @@ namespace SmartWalletAI.Domain.Enums
         Silver = 2,
         USD = 3,
         EUR =4,
+        GBP = 5,    
+        CHF = 6,
+        SAR = 7, 
+        KWD = 8  
     }
 
     public enum TransactionType

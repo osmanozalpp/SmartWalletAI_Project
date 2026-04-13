@@ -13,9 +13,10 @@ namespace SmartWalletAI.Infrastructure.Services
     }
     public class CollectApiCurrency
     {
-        public string Name { get; set; }  
-        public string Code { get; set; }  
-        public decimal Buying { get; set; } 
-        public decimal Selling { get; set; } 
+        public string Name { get; set; }
+        public string Code { get; set; }
+        public decimal Buying { get; set; }
+        public decimal Selling { get; set; }
+        public double Rate { get; set; } // API'den gelen % değişim oranı
     }
 }

@@ -12,5 +12,7 @@ namespace SmartWalletAI.Application.Common.DTOs
         public AssetType AssetType { get; set; }
         public decimal BuyPrice { get; set; }
         public decimal SellPrice { get; set; }
+        public double DailyChangePercentage { get; set; }
+
     }
 }

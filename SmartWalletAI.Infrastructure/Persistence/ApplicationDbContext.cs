@@ -24,6 +24,7 @@ namespace SmartWalletAI.Infrastructure.Persistence
         public DbSet<Asset> Assets { get; set; }
         public DbSet<MarketPrice> MarketPrices { get; set; }
         public DbSet<TransactionHistory> TransactionHistorys { get; set; }
+        public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

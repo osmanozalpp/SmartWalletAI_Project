@@ -3,39 +3,33 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SmartWalletAI.Application;
-using SmartWalletAI.Application.Common.Interfaces;
-using SmartWalletAI.Infrastructure;
-using SmartWalletAI.Infrastructure.Services;
+using SmartWalletAI.Infrastructure; // Artýk tüm Infra burada
 using SmartWalletAI.WebAPI.Middlewares;
 using SmartWalletAI.WebAPI.Workers;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// 1. Katman Servislerini Kaydet
 builder.Services.AddApplicationServices();
+builder.Services.AddInfrastructureServices(builder.Configuration); // Manager, Repository ve Client'lar burada çözülüyor
 
 builder.Services.AddMemoryCache();
 
-builder.Services.AddInfrastructureServices(builder.Configuration);
-
-
-
+// 2. Rate Limiting (Ýstek Sýnýrlandýrma)
 builder.Services.AddRateLimiter(options =>
 {
     options.AddSlidingWindowLimiter("AuthPolicy", opt =>
     {
-        opt.Window = TimeSpan.FromSeconds(30); 
-        opt.PermitLimit = 5;                   
-        opt.QueueLimit = 0;                    
-
-       
+        opt.Window = TimeSpan.FromSeconds(30);
+        opt.PermitLimit = 5;
+        opt.QueueLimit = 0;
         opt.SegmentsPerWindow = 3;
-      
     });
-
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
+// 3. Authentication & JWT Ayarlarý
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -49,7 +43,6 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
         ValidAudience = builder.Configuration["Jwt:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"]))
@@ -58,33 +51,31 @@ builder.Services.AddAuthentication(options =>
     {
         OnAuthenticationFailed = context =>
         {
-            Console.WriteLine($"\n\n=== TOKEN REDDEDÝLDÝ! ===");
-            Console.WriteLine($"SEBEP: {context.Exception.Message}");
-            Console.WriteLine($"=====================================================\n\n");
+            Console.WriteLine($"\n\n=== TOKEN REDDEDÝLDÝ! ===\nSEBEP: {context.Exception.Message}\n==========================\n\n");
             return Task.CompletedTask;
         }
     };
 });
 
+// 4. Background Services (Worker)
+// Not: Worker içindeki IMarketPriceManager kullanýmý için CreateScope() mantýðýný unutma!
 builder.Services.AddHostedService<MarketDataWorker>();
-builder.Services.AddHttpClient<IMarketDataService, CollectApiMarketService>();
 
+// 5. Controllers & Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "Tokeni buraya yapýþtýr",
+        Description = "JWT Tokeninizi 'Bearer {token}' þeklinde girin",
         Name = "Authorization",
         In = ParameterLocation.Header,
-        Type = SecuritySchemeType.Http, 
+        Type = SecuritySchemeType.Http,
         Scheme = "bearer",
         BearerFormat = "JWT"
     });
 
-    // Bu kilidin tüm endpointler için geçerli olduðunu söylüyoruz
     c.AddSecurityRequirement(new OpenApiSecurityRequirement()
     {
         {
@@ -103,7 +94,9 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
+
 var app = builder.Build();
+
 
 if (app.Environment.IsDevelopment())
 {
@@ -113,6 +106,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Özel Hata Yönetimi
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseRouting();
