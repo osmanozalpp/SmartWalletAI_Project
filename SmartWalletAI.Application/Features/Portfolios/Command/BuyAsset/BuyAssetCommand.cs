@@ -15,5 +15,6 @@ namespace SmartWalletAI.Application.Features.Portfolios.Command.BuyAsset
         public Guid UserId { get; set; }
         public AssetType AssetType { get; set; }
         public decimal Amount { get; set; }
+        public bool IsFiatAmount { get; set; } // True ise Amount TL'dir, False ise Gramdır.
     }
 }

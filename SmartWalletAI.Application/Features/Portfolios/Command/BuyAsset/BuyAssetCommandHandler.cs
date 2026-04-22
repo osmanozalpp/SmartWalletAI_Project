@@ -15,7 +15,7 @@ namespace SmartWalletAI.Application.Features.Portfolios.Command.BuyAsset
         private readonly IRepository<Asset> _assetRepository;
         private readonly IRepository<MarketPrice> _marketRepository;
         private readonly IRepository<Wallet> _walletRepository;
-        private readonly IRepository<TransactionHistory> _transactionHistoryRepository; 
+        private readonly IRepository<TransactionHistory> _transactionHistoryRepository;
         private readonly IUnitOfWork _unitOfWork;
 
         public BuyAssetCommandHandler(
@@ -33,8 +33,7 @@ namespace SmartWalletAI.Application.Features.Portfolios.Command.BuyAsset
         }
 
         public async Task<bool> Handle(BuyAssetCommand request, CancellationToken cancellationToken)
-        {           
-         
+        {
             var marketPrice = await _marketRepository.GetAllAsQueryable()
                 .FirstOrDefaultAsync(m => m.Type == request.AssetType, cancellationToken);
 
@@ -42,48 +41,61 @@ namespace SmartWalletAI.Application.Features.Portfolios.Command.BuyAsset
                 throw new Exception("Piyasa fiyatı bulunamadı.");
 
             var unitPrice = marketPrice.CurrentSellPrice;
-            var totalCost = request.Amount * unitPrice;
+
+            decimal assetAmount = 0m;
+            decimal totalCost = 0m;
+
             
+            if (request.IsFiatAmount)
+            {                
+                totalCost = request.Amount;
+                assetAmount = totalCost / unitPrice; 
+            }
+            else
+            {             
+                assetAmount = request.Amount;
+                totalCost = assetAmount * unitPrice; 
+            }
+
             var userWallet = await _walletRepository.GetAllAsQueryable()
                 .FirstOrDefaultAsync(w => w.UserId == request.UserId, cancellationToken);
 
             if (userWallet == null)
                 throw new Exception("Kullanıcı cüzdanı bulunamadı.");
-         
+          
+            if (userWallet.Balance < totalCost)
+                throw new Exception("Yetersiz bakiye.");
+
             userWallet.Withdraw(totalCost);
-            
-            await _walletRepository.UpdateAsync(userWallet); 
+            await _walletRepository.UpdateAsync(userWallet);
 
             var existingAsset = await _assetRepository.GetAllAsQueryable()
                 .FirstOrDefaultAsync(a => a.UserId == request.UserId && a.Type == request.AssetType, cancellationToken);
 
             if (existingAsset == null)
             {
-                // İlk defa alıyorsa yeni kayıt oluştur
                 var newAsset = new Asset(request.UserId, request.AssetType);
-                newAsset.AddAmount(request.Amount, unitPrice); // Ortalama maliyet güncellenir
-
+                newAsset.AddAmount(assetAmount, unitPrice); 
                 await _assetRepository.AddAsync(newAsset);
             }
             else
             {
-                // Mevcut varlığa ekle ve ortalama maliyet güncelleme 
-                existingAsset.AddAmount(request.Amount, unitPrice);
-                await _assetRepository.UpdateAsync(existingAsset); 
+                existingAsset.AddAmount(assetAmount, unitPrice);
+                await _assetRepository.UpdateAsync(existingAsset);
             }
-            
+
             var transaction = new TransactionHistory(
                 userId: request.UserId,
                 assetType: request.AssetType,
                 transactionType: TransactionType.Buy,
-                amount: request.Amount,
+                amount: assetAmount, 
                 unitPrice: unitPrice
             );
-            await _transactionHistoryRepository.AddAsync(transaction); 
-      
+            await _transactionHistoryRepository.AddAsync(transaction);
+
             await _unitOfWork.SaveChangesAsync(cancellationToken);
-            
+
             return true;
         }
     }
-}
+    }
