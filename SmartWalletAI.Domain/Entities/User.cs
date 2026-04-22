@@ -26,6 +26,8 @@ namespace SmartWalletAI.Domain.Entities
         public DateTime? PasswordResetCodeExpiry { get; set; }
         public Wallet Wallet { get; set; }=null;
 
-        
+        public DateTime? LastFailedLoginDate { get; set; } 
+
+
     }
 }

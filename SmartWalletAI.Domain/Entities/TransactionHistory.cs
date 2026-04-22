@@ -24,6 +24,7 @@ namespace SmartWalletAI.Domain.Entities
             AssetType = assetType;
             TransactionType = transactionType;
             Amount = amount;
+            UnitPrice = unitPrice;
             TotalPrice = amount * unitPrice;
 
         }

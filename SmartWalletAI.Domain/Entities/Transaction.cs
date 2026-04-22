@@ -14,7 +14,7 @@ namespace SmartWalletAI.Domain.Entities
         public Guid ReceiverWalletId { get; set; }
         public Decimal Amount { get; set; }
         
-        public DateTime TransactionTime { get; set; }
+        public DateTime TransactionDate { get; set; }
         public string? Description { get; set; }
 
         public TransactionCategory Category { get; set; }
