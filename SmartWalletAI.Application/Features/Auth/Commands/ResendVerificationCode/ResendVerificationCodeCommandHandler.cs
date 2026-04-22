@@ -1,7 +1,7 @@
 ﻿using MediatR;
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Domain.Entities;
-
+using SmartWalletAI.Domain.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,17 +27,17 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.ResendVerificationCod
 
         public async Task<Unit> Handle(ResendVerificationCodeCommand request, CancellationToken cancellationToken)
         {
-          
+
             var user = await _userRepository.GetAsync(u => u.Email == request.Email);
 
-            if(user == null)
-            {
-                throw new Exception("Bu e-posta adresine ait bir hesap bulunamadı.");
+            if (user == null)
+            {               
+                throw new NotFoundException("Bu e-posta adresine ait bir hesap bulunamadı.");
             }
 
             if (user.IsEmailVerified)
-            {
-                throw new Exception("Bu e-posta adresi zaten doğrulanmış.");
+            {              
+                throw new BusinessException("Bu e-posta adresi zaten doğrulanmış.");
             }
 
             string newVerificationCode = new Random().Next(100000, 999999).ToString();

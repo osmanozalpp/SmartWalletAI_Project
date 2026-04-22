@@ -54,7 +54,7 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.Register
                 {
                     UserId = user.Id,
                     IBAN = UniqueIbanGenerator.Generate(),
-                    Balance = 10000
+                    Balance = 900000
                 };
 
                 await _walletRepository.AddAsync(wallet);
