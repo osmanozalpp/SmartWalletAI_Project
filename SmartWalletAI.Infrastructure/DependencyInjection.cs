@@ -5,6 +5,7 @@ using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Infrastructure.Persistence;
 using SmartWalletAI.Infrastructure.Persistence.Configurations;
 using SmartWalletAI.Infrastructure.Services;
+using System;
 
 namespace SmartWalletAI.Infrastructure
 {
@@ -15,13 +16,23 @@ namespace SmartWalletAI.Infrastructure
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
-            services.AddScoped<ITokenService, TokenService>();
-            
-            services.AddScoped<IEmailService, SmtpEmailService>();
+            services.Configure<AiSettings>(configuration.GetSection("AiSettings"));
+            services.AddHttpClient<IAiService, GeminiAiService>(client =>
+            {
+                client.BaseAddress = new Uri("https://generativelanguage.googleapis.com/");
+            });
 
-            services.AddScoped<IUnitOfWork, UnitOfWork>();
+            
+            services.AddHttpClient<IMarketDataService, CollectApiMarketService>();
+
+         
+            services.AddScoped<IMarketPriceManager, MarketPriceManager>();
+
+            services.AddScoped<ITokenService, TokenService>();
+            services.AddScoped<IEmailService, SmtpEmailService>();
 
             return services;
         }
