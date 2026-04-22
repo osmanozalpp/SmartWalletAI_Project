@@ -24,17 +24,15 @@ namespace SmartWalletAI.Application.Features.Wallets.Commands.TransferMoney
     public class TransferMoneyResponse
     {
         public bool Success { get; set; }
-        public string Message { get; set; } = string.Empty;
+        public string Message { get; set; }
         public decimal NewBalance { get; set; }
-
-        //dekont
-        public string SenderName { get; set; } = string.Empty;
-        public string ReceiverName { get; set; } = string.Empty;
-        public string ReceiverIban { get; set; } = string.Empty;
+        public string SenderName { get; set; }
+        public string ReceiverName { get; set; }
+        public string ReceiverIban { get; set; }
         public decimal Amount { get; set; }
-        public DateTime TransactionDate { get; set; }
-        public string ReferenceNo { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
+        public DateTime TransactionDate { get; set; } // Entity ile aynı isim
+        public string ReferenceNumber { get; set; } // Entity ile aynı isim
         public TransactionCategory Category { get; set; }
+        public string Description { get; set; }
     }
 }

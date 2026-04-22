@@ -71,22 +71,21 @@ namespace SmartWalletAI.Application.Features.Wallets.Commands.TransferMoney
                     var existingTransaction = await _transactionRepository.GetAsync(t => t.ReferenceNumber == generatedReference);
                     isReferenceExists = existingTransaction != null;
 
-                } while (isReferenceExists); 
-                                             
+                } while (isReferenceExists);
+
                 var transactionRecord = new Transaction
                 {
                     Id = Guid.NewGuid(),
                     SenderWalletId = senderWallet.Id,
                     ReceiverWalletId = receiverWallet.Id,
                     Amount = request.Amount,
-                    TransactionTime = DateTime.UtcNow,
+                    TransactionDate = DateTime.UtcNow,
                     Description = request.Description ?? "Para Transferi",
                     Category = request.Category,
-                    ReferenceNumber = generatedReference 
+                    ReferenceNumber = generatedReference
                 };
 
                 await _transactionRepository.AddAsync(transactionRecord);
-
                 await _unitOfWork.SaveChangesAsync();
                 await dbTransaction.CommitAsync();
 
@@ -94,13 +93,13 @@ namespace SmartWalletAI.Application.Features.Wallets.Commands.TransferMoney
                 {
                     Success = true,
                     Message = "Transfer işlemi başarıyla gerçekleştirildi.",
-                    NewBalance =senderWallet.Balance,
-                    SenderName = senderUser?.Name ?? "Bilinmeyen Gönderen", 
+                    NewBalance = senderWallet.Balance,
+                    SenderName = senderUser?.Name ?? "Bilinmeyen Gönderen",
                     ReceiverName = receiverUser?.Name ?? "Bilinmeyen Alıcı",
                     ReceiverIban = request.ReceiverIban,
                     Amount = request.Amount,
-                    TransactionDate = transactionRecord.TransactionTime,
-                    ReferenceNo = transactionRecord.ReferenceNumber,
+                    TransactionDate = transactionRecord.TransactionDate,
+                    ReferenceNumber = transactionRecord.ReferenceNumber,
                     Category = transactionRecord.Category,
                     Description = transactionRecord.Description ?? "-"
                 };
