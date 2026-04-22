@@ -12,10 +12,12 @@ namespace SmartWalletAI.Application.Features.Wallets.Commands.SaveContact
     public class SaveContactCommandHandler : IRequestHandler<SaveContactCommand, bool>
     {
         private readonly IRepository<SavedContact> _savedContactRepository;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public SaveContactCommandHandler(IRepository<SavedContact> savedContactRepository)
+        public SaveContactCommandHandler(IRepository<SavedContact> savedContactRepository , IUnitOfWork unitOfWork)
         {
             _savedContactRepository = savedContactRepository;
+            _unitOfWork = unitOfWork;
         }
         public async Task<bool> Handle(SaveContactCommand request, CancellationToken cancellationToken)
         {
@@ -26,8 +28,10 @@ namespace SmartWalletAI.Application.Features.Wallets.Commands.SaveContact
                 existingContact.ContactName = request.ContactName;
                 existingContact.IsFavorite = request.IsFavorite;
 
+                existingContact.IsDeleted = false;
+
                 await _savedContactRepository.UpdateAsync(existingContact);
-                await _savedContactRepository.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync();
             } 
             else
             {
@@ -39,7 +43,7 @@ namespace SmartWalletAI.Application.Features.Wallets.Commands.SaveContact
                     IsFavorite = request.IsFavorite
                 };
                 await _savedContactRepository.AddAsync(newContact);
-                await _savedContactRepository.SaveChangesAsync();
+                await _unitOfWork.SaveChangesAsync();
             }
             return true;
         }
