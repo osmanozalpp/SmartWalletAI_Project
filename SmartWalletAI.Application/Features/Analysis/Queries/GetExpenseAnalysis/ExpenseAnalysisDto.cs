@@ -14,6 +14,8 @@ namespace SmartWalletAI.Application.Features.Analysis.Queries.GetExpenseAnalysis
         public decimal DailyAverageExpense { get; set; }
         public string TopSendingCategory { get; set; }
         public List<CategoryExpenseDetail> CategoryDetails { get; set; }
+
+        public string AiAnalysisAdvice { get; set; }
     }
 
     //pie chart için

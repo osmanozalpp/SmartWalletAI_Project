@@ -13,6 +13,9 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.DeleteAccount
         {
             RuleFor(x => x.UserId)
                 .NotEmpty().WithMessage("Geçersiz kullanıcı kimliği.");
+
+            RuleFor(x => x.Password)
+                .NotEmpty().WithMessage("Şifre boş bırakılamaz");
         }
     }
 }

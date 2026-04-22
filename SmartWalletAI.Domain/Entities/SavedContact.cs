@@ -11,7 +11,7 @@ namespace SmartWalletAI.Domain.Entities
         public Guid UserId { get; set; }
         public string ContactName { get; set; } = string.Empty;
         public string Iban { get; set; } = string.Empty;
-        public bool IsFavorite { get; set; } = false; //true ise favori false ise kayıtlı 
+        public bool IsFavorite { get; set; } = false; 
 
     }
 }

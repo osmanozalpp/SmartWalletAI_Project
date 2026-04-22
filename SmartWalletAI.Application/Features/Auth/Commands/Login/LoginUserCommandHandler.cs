@@ -1,16 +1,9 @@
 ﻿using FluentValidation;
 using MediatR;
-using Microsoft.IdentityModel.Tokens;
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using ValidationException = FluentValidation.ValidationException;
-
+using SmartWalletAI.Domain.Exceptions;
 
 namespace SmartWalletAI.Application.Features.Auth.Commands.Login
 {
@@ -29,48 +22,61 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.Login
             _unitOfWork = unitOfWork;
         }
 
-
         public async Task<LoginUserResponse> Handle(LoginUserCommand request, CancellationToken cancellationToken)
         {
-            
+           
             var validationResult = await _validator.ValidateAsync(request, cancellationToken);
             if (!validationResult.IsValid)
             {
                 throw new ValidationException(validationResult.Errors);
             }
 
-            var user = await _userRepository.GetAsync(u => u.Email == request.Email, ignoreFilters: true);
+           var user = await _userRepository.GetAsync(u => u.Email == request.Email, ignoreFilters: true);
 
-            if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+
+            
+            if (user == null)
             {
-                throw new Exception("Gmail veya şifre hatalı.");
+                throw new UnauthorizedException("E-posta adresi veya şifre hatalı.");
             }
-         
+
+            
+            if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+            {
+                user.LastFailedLoginDate = DateTime.UtcNow.AddHours(3);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                throw new UnauthorizedException("E-posta adresi veya şifre hatalı.");
+            }
+
+
             if (user.IsDeleted)
-            {            
-                throw new Exception("Bu hesap daha önce silinmiş. Tekrar aktif etmek ister misiniz?");
-            }       
+            {
+                throw new BusinessException("Bu hesap daha önce silinmiş. Tekrar aktif etmek için destekle iletişime geçin.");
+            }
+
            
             if (!user.IsEmailVerified)
             {
-                throw new Exception("Lütfen önce emailinize gelen kod ile hesabınızı doğrulayın.");
-            }          
-            var accesToken = _tokenService.GenerateAccesToken(user);
+                throw new BusinessException("Lütfen önce emailinize gelen kod ile hesabınızı doğrulayın.");
+            }
+          
+            var accessToken = _tokenService.GenerateAccesToken(user);
             var refreshToken = _tokenService.GenerateRefreshToken();
             var refreshTokenExpiration = DateTime.UtcNow.AddDays(7);
 
             user.RefreshToken = refreshToken;
-            user.RefreshTokenExpiryTime = refreshTokenExpiration;           
+            user.RefreshTokenExpiryTime = refreshTokenExpiration;
+
             await _userRepository.UpdateAsync(user);
-           
             await _unitOfWork.SaveChangesAsync();
 
             return new LoginUserResponse
             {
-                AccessToken = accesToken,
+                AccessToken = accessToken,
                 RefreshToken = refreshToken,
                 RefreshTokenExpiration = refreshTokenExpiration,
             };
         }
     }
-    }
+}

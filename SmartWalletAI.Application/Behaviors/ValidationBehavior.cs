@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SmartWalletAI.Application.Common.Behaviors
+namespace SmartWalletAI.Application.Behaviors
 {
     public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
          where TRequest : notnull
@@ -20,17 +20,17 @@ namespace SmartWalletAI.Application.Common.Behaviors
 
         public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
         {
-            if(_validators.Any())
+            if (_validators.Any())
             {
                 var context = new ValidationContext<TRequest>(request);
 
                 //tüm kuralları çalıştır
-                var validationResults= await Task.WhenAll(_validators.Select(v=>v.ValidateAsync(context ,cancellationToken)));
+                var validationResults = await Task.WhenAll(_validators.Select(v => v.ValidateAsync(context, cancellationToken)));
 
                 //Hataları topla
                 var failures = validationResults
-                    .SelectMany(r=>r.Errors)
-                    .Where(f=> f != null)
+                    .SelectMany(r => r.Errors)
+                    .Where(f => f != null)
                     .ToList();
 
                 // Eğer hata varsa Exception fırlat (İstek Handler'a gitmez!)

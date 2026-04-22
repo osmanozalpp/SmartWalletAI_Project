@@ -12,5 +12,6 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.DeleteAccount
     {
         [JsonIgnore]
         public Guid UserId { get; set; }
+        public string Password { get; set; }
     }
 }

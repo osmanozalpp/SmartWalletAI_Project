@@ -1,11 +1,12 @@
 ﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Polly;
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Application.Features.Portfolios.Command.BuyAsset;
-using SmartWalletAI.Application.Features.Portfolios.Command.SellAsset;
 using SmartWalletAI.Application.Features.Wallets.Commands.TransferMoney;
 using SmartWalletAI.Domain.Entities;
 using SmartWalletAI.Domain.Enums;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using static SmartWalletAI.Application.Features.Assistant.Commands.SendChatPrompt;
 
@@ -17,214 +18,174 @@ public class SendChatPromptCommandHandler : IRequestHandler<SendChatPromptComman
     private readonly IRepository<ChatMessage> _chatMessageRepository;
     private readonly IMediator _mediator;
     private readonly IRepository<SavedContact> _savedContactRepository;
+    private readonly IRepository<MarketPrice> _marketRepository;
 
-    public SendChatPromptCommandHandler(IAiService aiService, IRepository<ChatMessage> chatMessageRepository, IMediator mediator, IRepository<SavedContact> savedContactRepository)
+    // Regex'leri Compiled yaparak performansı artırıyoruz
+    private static readonly Regex TransferRegex = new(@"intent:\s*SEND_MONEY,\s*contact:\s*([^,]+),\s*amount:\s*(\d+(?:\.\d+)?),\s*category:\s*([^,]+),\s*description:\s*(.*)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex BuyRegex = new(@"intent:\s*BUY_ASSET,\s*asset:\s*([a-zA-ZçğıöşüÇĞİÖŞÜ]+),\s*amount:\s*(\d+(?:\.\d+)?),\s*unit:\s*([a-zA-Z]+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex NavRegex = new(@"intent:\s*NAVIGATE,\s*target:\s*([a-zA-Z0-9_]+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    public SendChatPromptCommandHandler(IAiService aiService, IRepository<ChatMessage> chatMessageRepository, IMediator mediator, IRepository<SavedContact> savedContactRepository, IRepository<MarketPrice> marketRepository)
     {
         _aiService = aiService;
         _chatMessageRepository = chatMessageRepository;
         _mediator = mediator;
-        _savedContactRepository =savedContactRepository;
+        _savedContactRepository = savedContactRepository;
+        _marketRepository = marketRepository;
     }
 
     public async Task<AssistantResponseDto> Handle(SendChatPromptCommand request, CancellationToken cancellationToken)
     {
         var userId = request.UserId;
+        string aiReply = string.Empty;
 
-        await _chatMessageRepository.AddAsync(new ChatMessage
+        try
         {
-            UserId = userId,
-            Role = "user",
-            Message = request.Message
-        });
-        await _chatMessageRepository.SaveChangesAsync();
+            // 1. Verileri EF Core çakışması olmadan sırayla çek (En güvenlisi budur)
+            var history = await _chatMessageRepository.GetAllAsQueryable().AsNoTracking()
+                .Where(x => x.UserId == userId)
+                .OrderByDescending(x => x.Timestamp).Take(5).OrderBy(x => x.Timestamp).ToListAsync(cancellationToken);
 
-        var history = await _chatMessageRepository.GetAllAsQueryable()
-            .Where(x => x.UserId == userId)
-            .OrderByDescending(x => x.Timestamp)
-            .Take(10)
-            .OrderBy(x => x.Timestamp)
-            .ToListAsync(cancellationToken);
+            var userContacts = await _savedContactRepository.GetAllAsQueryable().AsNoTracking()
+                .Where(c => c.UserId == userId && !c.IsDeleted).Select(c => c.ContactName).ToListAsync(cancellationToken);
 
-        var aiReply = await _aiService.GetChatResponseAsync(request.Message, history);
+            var marketPrices = await _marketRepository.GetAllAsQueryable().AsNoTracking()
+                .Select(m => $"{m.Type}:{m.CurrentSellPrice}").ToListAsync(cancellationToken);
 
-        AssistantResponseDto finalResponse;
+            // 2. Promptu Oluştur
+            string contactStr = userContacts.Any() ? string.Join(", ", userContacts) : "Kayıtlı kişi yok";
+            string priceStr = marketPrices.Any() ? string.Join(" | ", marketPrices) : "Fiyat bilgisi yok";
 
-        if (aiReply.Contains("intent:"))
-        {
-            finalResponse = await HandleAiIntent(aiReply, userId, cancellationToken);
+            string enrichedMessage = @$"Kullanıcı Mesajı: {request.Message}
+            ---
+            [Sistem Bilgisi - Bu verileri kullanarak işlem yapabilirsin]:
+            Rehber: {contactStr}
+            Piyasa: {priceStr}
+            ---";
+
+            // 3. AI Çağrısı (Retry politikasını basitleştirdik)
+            var retryPolicy = Policy
+                .Handle<Exception>()
+                .OrResult<string>(r => string.IsNullOrEmpty(r) || r.Contains("sorun var"))
+                .WaitAndRetryAsync(1, _ => TimeSpan.FromMilliseconds(300));
+
+            try
+            {
+                aiReply = await retryPolicy.ExecuteAsync(async () =>
+                    await _aiService.GetChatResponseAsync(enrichedMessage, history));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"--- AI HATASI: {ex.Message}");
+                aiReply = "Sway şu an yoğun, lütfen tekrar dener misin? ⚡";
+            }
+
+            // 4. Yanıtı İşle ve Kaydet
+            AssistantResponseDto finalResponse;
+            if (aiReply.Contains("intent:"))
+            {
+                finalResponse = await HandleAiIntent(aiReply, userId, cancellationToken);
+                string cleanReply = aiReply.Split("intent:")[0].Trim();
+                finalResponse = finalResponse with { Reply = string.IsNullOrEmpty(cleanReply) ? finalResponse.Reply : cleanReply };
+            }
+            else
+            {
+                finalResponse = new AssistantResponseDto(aiReply);
+            }
+
+            // Asistan yanıtını kaydet (Kullanıcı mesajını daha önce kaydettiğini varsayıyorum)
+            await _chatMessageRepository.AddAsync(new ChatMessage { UserId = userId, Role = "assistant", Message = finalResponse.Reply });
+            await _chatMessageRepository.SaveChangesAsync();
+
+            return finalResponse;
         }
-        else
+        catch (Exception ex)
         {
-            finalResponse = new AssistantResponseDto(aiReply);
+            Console.WriteLine($"--- GLOBAL HATA: {ex.Message}");
+            return new AssistantResponseDto("Sistemde bir yoğunluk var, hemen bakıyorum. 🛠️");
         }
-
-        await _chatMessageRepository.AddAsync(new ChatMessage
-        {
-            UserId = userId,
-            Role = "assistant",
-            Message = finalResponse.Reply
-        });
-        await _chatMessageRepository.SaveChangesAsync();
-
-        return finalResponse;
     }
 
-    // KÖPRÜ METODU: AI Niyetini Gerçek Komutlara Bağlar
     private async Task<AssistantResponseDto> HandleAiIntent(string aiReply, Guid userId, CancellationToken ct)
     {
-        // 1. ALTIN ALMA SENARYOSU
-        var buyMatch = Regex.Match(aiReply, @"intent:\s*BUY_GOLD,\s*amount:\s*(\d+(\.\d+)?)");
-        if (buyMatch.Success && decimal.TryParse(buyMatch.Groups[1].Value, out decimal amount))
+        // --- PARA TRANSFERİ ---
+        var transferMatch = TransferRegex.Match(aiReply);
+        if (transferMatch.Success && decimal.TryParse(transferMatch.Groups[2].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal transferAmount))
         {
-            try
+            var contact = await _savedContactRepository.GetAsync(c => c.UserId == userId && !c.IsDeleted && c.ContactName.ToLower() == transferMatch.Groups[1].Value.Trim().ToLower());
+            if (contact != null)
             {
-                var buyCommand = new BuyAssetCommand
-                {
-                    UserId = userId,
-                    AssetType = AssetType.Gold,
-                    Amount = amount
-                };
-
-                bool isSuccess = await _mediator.Send(buyCommand, ct);
-
-                if (isSuccess)
-                {
-                    return new AssistantResponseDto(
-                        $"{amount} gram altın alım işlemini başarıyla tamamladın. Cüzdanın güncellendi! 🚀",
-                        true,
-                        "BUY_GOLD_SUCCESS");
-                }
-            }
-            catch (Exception ex)
-            {
-                return new AssistantResponseDto(
-                    $"Altın alırken bir sorun oluştu: {ex.Message}",
-                    false,
-                    "BUY_GOLD_ERROR");
+                var response = await _mediator.Send(new TransferMoneyCommand { SenderId = userId, ReceiverIban = contact.Iban, Amount = transferAmount, Category = MapCategory(transferMatch.Groups[3].Value), Description = transferMatch.Groups[4].Value.Trim() }, ct);
+                if (response.Success) return new AssistantResponseDto($"{contact.ContactName} kişisine {transferAmount} TL gönderildi! 💸", true);
             }
         }
 
-        // 2. ALTIN SATMA SENARYOSU
-        var sellMatch = Regex.Match(aiReply, @"intent:\s*SELL_GOLD,\s*amount:\s*(\d+(\.\d+)?)");
-        if (sellMatch.Success && decimal.TryParse(sellMatch.Groups[1].Value, out decimal sellAmount))
+        // --- VARLIK ALIMI ---
+        var buyMatch = BuyRegex.Match(aiReply);
+        if (buyMatch.Success && decimal.TryParse(buyMatch.Groups[2].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal buyAmount))
         {
-            try
+            var asset = MapAssetType(buyMatch.Groups[1].Value.Trim());
+            if (asset != 0)
             {
-                var sellCommand = new SellAssetCommand
-                {
-                    UserId = userId,
-                    AssetType = AssetType.Gold,
-                    Amount = sellAmount
-                };
-
-                bool isSuccess = await _mediator.Send(sellCommand, ct);
-
-                if (isSuccess)
-                {
-                    return new AssistantResponseDto(
-                        $"{sellAmount} gram altın satım işlemin başarıyla tamamlandı. Cüzdanın güncellendi! 💸",
-                        true,
-                        "SELL_GOLD_SUCCESS");
-                }
-            }
-            catch (Exception ex)
-            {
-                return new AssistantResponseDto(
-                    $"Altın satarken bir sorun oluştu: {ex.Message}",
-                    false,
-                    "SELL_GOLD_ERROR");
+                var success = await _mediator.Send(new BuyAssetCommand { UserId = userId, AssetType = asset, Amount = buyAmount, IsFiatAmount = buyMatch.Groups[3].Value.ToUpper() == "TL" }, ct);
+                if (success) return new AssistantResponseDto($"{buyAmount} {buyMatch.Groups[3].Value} değerinde {buyMatch.Groups[1].Value} alımı tamamlandı! 🚀", true);
             }
         }
 
-        var transferMatch = Regex.Match(aiReply, @"intent:\s*SEND_MONEY,\s*contact:\s*([a-zA-ZğüşıöçĞÜŞİÖÇ\s]+),\s*amount:\s*(\d+(?:\.\d+)?),\s*category:\s*([a-zA-ZğüşıöçĞÜŞİÖÇ\s]+),\s*description:\s*(.+)");
-
-        if (transferMatch.Success && decimal.TryParse(transferMatch.Groups[2].Value, out decimal transferAmount))
+        // --- NAVİGASYON ---
+        var navMatch = NavRegex.Match(aiReply);
+        if (navMatch.Success)
         {
-            try
-            {
-                string targetContactName = transferMatch.Groups[1].Value.Trim();
-                string categoryText = transferMatch.Groups[3].Value.Trim(); 
-                string transferDescription = transferMatch.Groups[4].Value.Trim();
-
-               
-                TransactionCategory selectedCategory = TransactionCategory.Diğer; 
-               
-                string cleanCategoryText = categoryText.ToLower().Replace(" ", "");
-
-                switch (cleanCategoryText)
-                {
-                    case "market":
-                        selectedCategory = TransactionCategory.Market;
-                        break;
-                    case "yemek":
-                        selectedCategory = TransactionCategory.Yemek;
-                        break;
-                    case "fatura":
-                        selectedCategory = TransactionCategory.Fatura;
-                        break;
-                    case "eğlence":
-                    case "eglence":
-                        selectedCategory = TransactionCategory.Eğlence;
-                        break;
-                    case "eğitim":
-                    case "egitim":
-                        selectedCategory = TransactionCategory.Eğitim;
-                        break;
-                    case "sağlık":
-                    case "saglik":
-                        selectedCategory = TransactionCategory.Sağlık;
-                        break;
-                    case "bireyselödeme":
-                    case "bireyselodeme":
-                        selectedCategory = TransactionCategory.BireyselÖdeme;
-                        break;
-                    default:
-                        selectedCategory = TransactionCategory.Diğer;
-                        break;
-                }
-
-                var contact = await _savedContactRepository.GetAsync(c =>
-                    c.UserId == userId &&
-                    c.ContactName.ToLower() == targetContactName.ToLower());
-
-                if (contact == null)
-                {
-                    return new AssistantResponseDto(
-                        $"Rehberinde '{targetContactName}' adında kayıtlı bir alıcı bulamadım.",
-                        false,
-                        "SEND_MONEY_CONTACT_NOT_FOUND");
-                }
-
-                // 3.3: Gerçek Transfer Komutunu Tetikle
-                var transferCommand = new TransferMoneyCommand
-                {
-                    SenderId = userId,
-                    ReceiverIban = contact.Iban,
-                    Amount = transferAmount,
-                    Description = transferDescription,
-                    Category = selectedCategory 
-                };
-
-                var response = await _mediator.Send(transferCommand, ct);
-
-                if (response.Success)
-                {
-                    return new AssistantResponseDto(
-                        $"{targetContactName} adlı kişiye {transferAmount} TL başarıyla gönderildi.\nKategori: {categoryText}\nNot: {transferDescription} 💸",
-                        true,
-                        "SEND_MONEY_SUCCESS");
-                }
-            }
-            catch (Exception ex)
-            {
-                return new AssistantResponseDto(
-                    $"Para transferi sırasında bir sorun oluştu: {ex.Message}",
-                    false,
-                    "SEND_MONEY_ERROR");
-            }
+            var page = MapNavigationPage(navMatch.Groups[1].Value.ToLower());
+            if (page != NavigationPage.Unknown) return new AssistantResponseDto("Yönlendiriyorum...", true, $"NAVIGATE_{page.ToString().ToUpper()}");
         }
 
+        return new AssistantResponseDto("İşlem anlaşıldı ancak parametreler eksik.");
+    }
+    private AssetType MapAssetType(string asset)
+    {
+        return asset switch
+        {
+            "GOLD" or "ALTIN" => AssetType.Gold,
+            "SILVER" or "GÜMÜŞ" or "GUMUS" => AssetType.Silver,
+            "USD" or "DOLAR" => AssetType.USD,
+            "EUR" or "EURO" => AssetType.EUR,
+            "GBP" or "STERLİN" or "STERLIN" => AssetType.GBP,
+            "CHF" or "FRANK" => AssetType.CHF,
+            "SAR" or "RİYAL" or "RIYAL" => AssetType.SAR,
+            "KWD" or "DİNAR" or "DINAR" => AssetType.KWD,
+            _ => 0
+        };
+    }
 
-        return new AssistantResponseDto(aiReply);
+    private TransactionCategory MapCategory(string category)
+    {
+        string clean = category.ToLower().Replace(" ", "");
+        return clean switch
+        {
+            "market" => TransactionCategory.Market,
+            "yemek" => TransactionCategory.Yemek,
+            "fatura" => TransactionCategory.Fatura,
+            "eğlence" or "eglence" => TransactionCategory.Eğlence,
+            "eğitim" or "egitim" => TransactionCategory.Eğitim,
+            "sağlık" or "saglik" => TransactionCategory.Sağlık,
+            "bireyselödeme" or "bireyselodeme" => TransactionCategory.BireyselÖdeme,
+            "kira" or "kiraödeme" or "kiraodeme" => TransactionCategory.KiraÖdeme,
+            _ => TransactionCategory.Diğer
+        };
+    }
+
+    private NavigationPage MapNavigationPage(string target)
+    {
+        return target switch
+        {
+            "buygold" => NavigationPage.BuyGold,
+            "sellgold" => NavigationPage.SellGold,
+            "transfer" => NavigationPage.TransferMoney,
+            "history" => NavigationPage.InvestmentHistory,
+            "analysis" => NavigationPage.ExpenseAnalysis,
+            "portfolio" => NavigationPage.Portfolio,
+            _ => NavigationPage.Unknown
+        };
     }
 }

@@ -1,9 +1,9 @@
-﻿using FluentValidation; 
-using Microsoft.Extensions.DependencyInjection; 
+﻿using FluentValidation;
+using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
-using SmartWalletAI.Application.Common.Behaviors;
 using SmartWalletAI.Application.Features.Auth.Commands.Register;
 using MediatR;
+using SmartWalletAI.Application.Behaviors;
 
 namespace SmartWalletAI.Application
 {

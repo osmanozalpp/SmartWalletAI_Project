@@ -40,8 +40,8 @@ namespace SmartWalletAI.Application.Features.Analysis.Queries.GetExpenseAnalysis
             var monthlyExpenses = await _transactionRepository.GetAllAsQueryable()
                 .AsNoTracking()
                 .Where(t => t.SenderWalletId == userWallet.Id &&
-                            t.TransactionTime.Month == currentMonth &&
-                            t.TransactionTime.Year == currentYear)
+                            t.TransactionDate.Month == currentMonth &&
+                            t.TransactionDate.Year == currentYear)
                 .ToListAsync(cancellationToken);
 
             if (!monthlyExpenses.Any())
@@ -72,18 +72,20 @@ namespace SmartWalletAI.Application.Features.Analysis.Queries.GetExpenseAnalysis
             var lastMonthTotal = await _transactionRepository.GetAllAsQueryable()
                 .AsNoTracking()
                 .Where(t => t.SenderWalletId == userWallet.Id &&
-                            t.TransactionTime.Month == lastMonthDate.Month &&
-                            t.TransactionTime.Year == lastMonthDate.Year)
+                            t.TransactionDate.Month == lastMonthDate.Month &&
+                            t.TransactionDate.Year == lastMonthDate.Year)
                 .SumAsync(t => t.Amount, cancellationToken);
 
             
             var topCategory = groupedCategories.First();
-            string contextData = $"Kullanıcı bu ay toplam {totalExpense} TL harcadı. " +
+            
+            string contextData = "[ANALİZ_GÖREVİ] " +
+                                 $"Kullanıcı bu ay toplam {totalExpense} TL harcadı. " +
                                  $"Geçen ayki toplam harcaması ise {lastMonthTotal} TL idi. " +
                                  $"Bu ay en çok harcama yaptığı kategori: {topCategory.CategoryName} ({topCategory.Percentage}% oranında). " +
                                  $"Bu verilere dayanarak kullanıcıya kısa, samimi ve 2 cümleyi geçmeyen bir harcama analizi/tavsiyesi ver.";
 
-            
+
             var aiAdvice = await _aiService.GetFinancialAdviceAsync(contextData);
 
             return new ExpenseAnalysisDto

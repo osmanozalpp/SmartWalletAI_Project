@@ -482,3 +482,7 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Hassas Konfigürasyon Dosyaları
+appsettings.json
+appsettings.Development.json

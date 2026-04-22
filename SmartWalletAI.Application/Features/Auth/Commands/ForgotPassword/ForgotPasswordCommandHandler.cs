@@ -14,7 +14,7 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.ForgotPassword
         private readonly IRepository<User> _userRepository;
         private readonly IEmailService _emailService;
         private readonly IUnitOfWork _unitOfWork;
-        public ForgotPasswordCommandHandler(IRepository<User> userRepository , IEmailService emailService , IUnitOfWork unitOfWork)
+        public ForgotPasswordCommandHandler(IRepository<User> userRepository, IEmailService emailService, IUnitOfWork unitOfWork)
         {
             _userRepository = userRepository;
             _emailService = emailService;
@@ -23,7 +23,7 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.ForgotPassword
 
         public async Task<bool> Handle(ForgotPasswordCommand request, CancellationToken cancellationToken)
         {
-           var user = await _userRepository.GetAsync(u=> u.Email == request.Email);
+            var user = await _userRepository.GetAsync(u => u.Email == request.Email);
 
             /* GÜVENLİK SIRRI
              Kullanıcı yoksa bile "hata" dönmüyoruz. İşlem başarılıymış gibi davranıyoruz. */
