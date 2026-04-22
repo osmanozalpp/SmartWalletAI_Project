@@ -4,14 +4,15 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens.Experimental;
 using SmartWalletAI.Application.Features.Analysis.Queries.GetExpenseAnalysis;
-using SmartWalletAI.Application.Features.Wallets.Commands.Queries.GetMyWallet;
-using SmartWalletAI.Application.Features.Wallets.Commands.Queries.GetRecipients;
-using SmartWalletAI.Application.Features.Wallets.Commands.Queries.GetWalletTransactions;
-using SmartWalletAI.Application.Features.Wallets.Commands.Queries.GetMaskedOwnerName;
+using SmartWalletAI.Application.Features.Wallets.Queries.GetMyWallet;
+using SmartWalletAI.Application.Features.Wallets.Queries.GetRecipients;
+using SmartWalletAI.Application.Features.Wallets.Queries.GetMaskedOwnerName;
 using SmartWalletAI.Application.Features.Wallets.Commands.SaveContact;
 using SmartWalletAI.Application.Features.Wallets.Commands.TransferMoney;
 using System.Security.Claims;
 using SmartWalletAI.Application.Features.Wallets.Commands.RemoveContact;
+using SmartWalletAI.Application.Features.Wallets.Queries.GetTransactionDetail;
+using SmartWalletAI.Application.Features.Wallets.Queries.GetWalletTransactions;
 
 namespace SmartWalletAI.WebAPI.Controllers
 {
@@ -64,10 +65,26 @@ namespace SmartWalletAI.WebAPI.Controllers
         [HttpGet("{walletId}/transactions")]
         public async Task<IActionResult> GetWalletTransactions([FromRoute] Guid walletId, [FromQuery] GetWalletTransactionsQuery query)
         {
-            query.WalletId = walletId;
+            
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
+            if (string.IsNullOrEmpty(userIdString))
+                return Unauthorized(); 
+            
+            query.WalletId = walletId;
+            query.UserId = Guid.Parse(userIdString);
+
+            // 3. Mediator ile gönder
             var result = await _mediator.Send(query);
 
+            return Ok(result);
+        }
+
+        [HttpGet("{id}/receipt")]
+        public async Task<IActionResult> GetReceipt(Guid id)
+        {
+            var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            var result = await _mediator.Send(new GetTransactionDetailQuery { TransactionId = id, UserId = userId });
             return Ok(result);
         }
 

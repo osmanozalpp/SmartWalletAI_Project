@@ -24,8 +24,7 @@ namespace SmartWalletAI.WebAPI.Controllers
             if (userIdClaim == null) return Unauthorized();
 
             var userId = Guid.Parse(userIdClaim);
-
-            // Yeni bir Query oluşturup MediatR ile geçmişi çekiyoruz
+          
             var result = await _mediator.Send(new GetChatHistoryQuery(userId));
 
             return Ok(result);

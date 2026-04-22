@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SmartWalletAI.Application.Features.Portfolios.Command.BuyAsset;
 using SmartWalletAI.Application.Features.Portfolios.Command.SellAsset;
+using SmartWalletAI.Application.Features.Portfolios.Queries.GetInvestmentHistory;
 using SmartWalletAI.Application.Features.Portfolios.Queries.GetMarketPrices;
 using SmartWalletAI.Application.Features.Portfolios.Queries.GetPortfolioSummary;
 using System.Security.Claims;
@@ -18,13 +19,13 @@ namespace SmartWalletAI.WebAPI.Controllers
 
         public PortfoliosController(IMediator mediator)
         {
-            _mediator = mediator;   
+            _mediator = mediator;
         }
 
         [HttpGet("summary")]
         public async Task<IActionResult> GetPortfolioSummary()
         {
-           
+
             var userIdFromToken = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (string.IsNullOrEmpty(userIdFromToken))
@@ -38,7 +39,7 @@ namespace SmartWalletAI.WebAPI.Controllers
         [HttpPost("buy")]
         public async Task<IActionResult> BuyAsset([FromBody] BuyAssetCommand command)
         {
-            
+
             var userIdFromToken = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (string.IsNullOrEmpty(userIdFromToken))
@@ -77,6 +78,20 @@ namespace SmartWalletAI.WebAPI.Controllers
         public async Task<IActionResult> GetMarketPrices()
         {
             var query = new GetMarketPricesQuery();
+            var result = await _mediator.Send(query);
+
+            return Ok(result);
+        }
+
+        [HttpGet("investment-history")]
+        public async Task<IActionResult> GetInvestmentHistory()
+        {
+            var userIdFromToken = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(userIdFromToken))
+                return Unauthorized("Kullanıcı bilgisi token içerisinde bulunamadı.");
+
+            var query = new GetInvestmentHistoryQuery(Guid.Parse(userIdFromToken));
             var result = await _mediator.Send(query);
 
             return Ok(result);
