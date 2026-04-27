@@ -19,7 +19,7 @@ namespace SmartWalletAI.Domain.Entities
             if (Balance < amount) throw new InvalidOperationException("Yetersiz bakiye.");
 
             Balance -= amount;
-            UpdatedDate = DateTime.UtcNow;
+            UpdatedDate = DateTime.UtcNow.AddHours(3);
         }
 
         // Para Ekleme / Alma
@@ -28,7 +28,7 @@ namespace SmartWalletAI.Domain.Entities
             if (amount <= 0) throw new ArgumentException("Tutar 0'dan büyük olmalıdır.");
 
             Balance += amount;
-            UpdatedDate = DateTime.UtcNow;
+            UpdatedDate = DateTime.UtcNow.AddHours(3);
         }
     }
 }

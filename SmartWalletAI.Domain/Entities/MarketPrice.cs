@@ -21,7 +21,7 @@ namespace SmartWalletAI.Domain.Entities
         {
             CurrentBuyPrice = buyPrice;
             CurrentSellPrice = sellPrice;
-            UpdatedDate = DateTime.UtcNow;
+            UpdatedDate = DateTime.UtcNow.AddHours(3);
         }
     }
 }

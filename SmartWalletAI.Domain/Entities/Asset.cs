@@ -30,7 +30,7 @@ namespace SmartWalletAI.Domain.Entities
             var totalCost = (Amount * AverageCost) + (additionalAmount * unitPrice);
             Amount += additionalAmount;
             AverageCost = totalCost / Amount;
-            UpdatedDate = DateTime.UtcNow;
+            UpdatedDate = DateTime.UtcNow.AddHours(3);
         }
         public void RemoveAmount(decimal amountToRemove)
         {
@@ -38,7 +38,7 @@ namespace SmartWalletAI.Domain.Entities
             if (amountToRemove > Amount) throw new InvalidOperationException("Yetersiz varlık bakiyesi.");
 
             Amount -= amountToRemove;
-            UpdatedDate = DateTime.UtcNow;
+            UpdatedDate = DateTime.UtcNow.AddHours(3);
         }
     }
 }

@@ -15,7 +15,7 @@ namespace SmartWalletAI.Domain.Entities
         public string? RefreshToken { get; set; }
         public DateTime? RefreshTokenExpiryTime  { get; set; }
 
-        public bool TwoFactorEnabled { get; set; } = false;
+        public string? PendingEmail { get; set; }
 
         public bool IsEmailVerified { get; set; } = false;
         public string? EmailVerificationCode { get; set; }

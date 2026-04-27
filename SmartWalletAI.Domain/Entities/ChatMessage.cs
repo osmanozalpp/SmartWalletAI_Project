@@ -12,6 +12,6 @@ namespace SmartWalletAI.Domain.Entities
         public Guid UserId { get; set; }
         public string Role { get; set; } = null!;
         public string Message { get; set; }
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow.AddHours(3);
     }
 }
