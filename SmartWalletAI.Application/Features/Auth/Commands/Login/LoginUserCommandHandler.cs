@@ -63,7 +63,7 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.Login
           
             var accessToken = _tokenService.GenerateAccesToken(user);
             var refreshToken = _tokenService.GenerateRefreshToken();
-            var refreshTokenExpiration = DateTime.UtcNow.AddDays(7);
+            var refreshTokenExpiration = DateTime.UtcNow.AddHours(3).AddDays(7);
 
             user.RefreshToken = refreshToken;
             user.RefreshTokenExpiryTime = refreshTokenExpiration;

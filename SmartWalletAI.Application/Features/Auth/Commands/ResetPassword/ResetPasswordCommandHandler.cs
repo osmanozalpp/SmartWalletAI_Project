@@ -28,7 +28,7 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.ResetPassword
                 };
             }
 
-            if (user.PasswordResetCodeExpiry < DateTime.UtcNow)
+            if (user.PasswordResetCodeExpiry < DateTime.UtcNow.AddHours(3))
             {
                 return new ResetPasswordResponse
                 {

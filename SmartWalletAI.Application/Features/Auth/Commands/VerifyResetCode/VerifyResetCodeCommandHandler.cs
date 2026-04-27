@@ -39,7 +39,7 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.VerifyResetCode
                     Message = "Geçersiz doğrulama kodu."
                 };
             }
-            if (user.PasswordResetCodeExpiry < DateTime.UtcNow)
+            if (user.PasswordResetCodeExpiry < DateTime.UtcNow.AddHours(3))
             {
                 return new VerifyResetCodeResponse
                 {

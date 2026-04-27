@@ -1,6 +1,7 @@
 ﻿using MediatR;
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Domain.Entities;
+using SmartWalletAI.Domain.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,12 +25,15 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.VerifyEmail
             
             var user = await _userRepository.GetAsync(u => u.Email == request.Email);
 
-            if (user == null || user.EmailVerificationCode != request.Code)
-                throw new Exception("Geçersiz doğrulama kodu.");
 
-            if (user.EmailVerificationCodeExpiry < DateTime.UtcNow)
-                throw new Exception("Doğrulama kodunun süresi doldu . Lütfen yeni bir kod isteyin.");
+            if (user == null)
+                throw new NotFoundException("Kullanıcı bulunamadı.");
 
+            if (user.EmailVerificationCode != request.Code)
+                throw new BusinessException("Girdiğiniz doğrulama kodu hatalı.");
+
+            if (user.EmailVerificationCodeExpiry < DateTime.UtcNow.AddHours(3))
+                throw new BusinessException("Doğrulama kodunun süresi dolmuş. Lütfen yeni bir kod isteyin.");
             user.IsEmailVerified = true;
             user.EmailVerificationCode = null;
             user.EmailVerificationCodeExpiry = null;

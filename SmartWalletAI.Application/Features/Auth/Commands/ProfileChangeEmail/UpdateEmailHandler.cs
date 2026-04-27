@@ -37,10 +37,9 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.ProfileChangeEmail
             
             string verificationCode = new Random().Next(100000, 999999).ToString();
 
-            user.Email = request.NewEmail;
-            user.IsEmailVerified = false; 
+            user.PendingEmail = request.NewEmail;
             user.EmailVerificationCode = verificationCode;
-            user.EmailVerificationCodeExpiry = DateTime.UtcNow.AddMinutes(15);
+            user.EmailVerificationCodeExpiry = DateTime.UtcNow.AddHours(3).AddMinutes(15);
 
             _userRepository.UpdateAsync(user);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -53,7 +52,7 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.ProfileChangeEmail
                 <p>Bu kod 15 dakika geçerlidir.</p>
             </div>";
 
-            await _emailService.SendEmailAsync(user.Email, "E-posta Doğrulama Kodunuz", mailBody);
+            await _emailService.SendEmailAsync(user.PendingEmail, "E-posta Doğrulama Kodunuz", mailBody);
         }
     }
 }

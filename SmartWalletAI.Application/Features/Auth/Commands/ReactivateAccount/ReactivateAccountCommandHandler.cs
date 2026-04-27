@@ -1,6 +1,7 @@
 ﻿using MediatR;
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Domain.Entities;
+using SmartWalletAI.Domain.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,16 +28,19 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.ReactivateAccount
             
             var user = await _userRepository.GetAsync(u => u.Email == request.Email, ignoreFilters: true);
 
-            if (user == null) throw new Exception("Kullanıcı bulunamadı.");
-            if (!user.IsDeleted) throw new Exception("Hesabınız zaten aktif durumda.");
+            if (user == null)
+                throw new NotFoundException("Kullanıcı bulunamadı.");
+          
+            if (!user.IsDeleted)
+                throw new BusinessException("Hesabınız zaten aktif durumda.");
 
             var verificationCode = new Random().Next(100000, 999999).ToString();
 
-            user.IsDeleted = false; 
-            user.UpdatedDate = DateTime.UtcNow;
+            user.IsDeleted = false;
+            user.UpdatedDate = DateTime.UtcNow.AddHours(3);
 
             user.EmailVerificationCode = verificationCode;
-            user.EmailVerificationCodeExpiry = DateTime.UtcNow.AddMinutes(3);
+            user.EmailVerificationCodeExpiry = DateTime.UtcNow.AddHours(3).AddMinutes(3);
 
             await _userRepository.UpdateAsync(user);
             await _unitOfWork.SaveChangesAsync();

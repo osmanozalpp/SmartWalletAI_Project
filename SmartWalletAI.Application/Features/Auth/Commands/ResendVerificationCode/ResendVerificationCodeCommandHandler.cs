@@ -43,7 +43,7 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.ResendVerificationCod
             string newVerificationCode = new Random().Next(100000, 999999).ToString();
 
             user.EmailVerificationCode = newVerificationCode;
-            user.EmailVerificationCodeExpiry = DateTime.UtcNow.AddMinutes(15);
+            user.EmailVerificationCodeExpiry = DateTime.UtcNow.AddHours(3).AddMinutes(15);
 
             await _userRepository.UpdateAsync(user);
             await _unitOfWork.SaveChangesAsync();

@@ -28,18 +28,24 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.ConfirmEmailUpdate
             if (user == null)
                 throw new NotFoundException("Kullanıcı bulunamadı.");
 
+            if (string.IsNullOrEmpty(user.PendingEmail))
+                throw new BusinessException("Onaylanacak bir e-posta değişikliği bulunmuyor.");
+
             if (user.EmailVerificationCode != request.Code)
                 throw new BusinessException("Girdiğiniz doğrulama kodu hatalı.");
 
-            if (user.EmailVerificationCodeExpiry < DateTime.UtcNow)
+            if (user.EmailVerificationCodeExpiry < DateTime.UtcNow.AddHours(3))
                 throw new BusinessException("Kodun süresi dolmuş. Lütfen tekrar deneyin.");
-          
+
+            user.Email = user.PendingEmail;
+
+            user.PendingEmail = null;
             user.IsEmailVerified = true;
-            user.EmailVerificationCode = null; 
+            user.EmailVerificationCode = null;
             user.EmailVerificationCodeExpiry = null;
-           
+
             _userRepository.UpdateAsync(user);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
     }
-}
+    }
