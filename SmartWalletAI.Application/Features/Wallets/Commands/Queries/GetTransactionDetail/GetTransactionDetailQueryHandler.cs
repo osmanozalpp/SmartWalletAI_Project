@@ -1,8 +1,10 @@
 ﻿using MediatR;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Application.Features.Wallets.Queries.GetTransactionDetail;
 using SmartWalletAI.Domain.Entities;
+using SmartWalletAI.Domain.Exceptions;
 
 
 public class GetTransactionDetailQueryHandler : IRequestHandler<GetTransactionDetailQuery, TransactionReceiptDto>
@@ -23,16 +25,18 @@ public class GetTransactionDetailQueryHandler : IRequestHandler<GetTransactionDe
 
         
         if (transaction == null)
-            throw new Exception("İşlem kaydı bulunamadı.");
+            throw new NotFoundException("İşlem kaydı bulunamadı.");
 
         
         bool isUserAuthorized = transaction.SenderWallet.UserId == request.UserId ||
                                 transaction.ReceiverWallet.UserId == request.UserId;
 
         if (!isUserAuthorized)
-            throw new Exception("Bu işlem detayını görüntüleme yetkiniz bulunmamaktadır.");
+        {
+            throw new UnauthorizedException("Bu işlem detayını görüntüleme yetkiniz bulunmamaktadır.");
+        }
 
-        
+
         return new TransactionReceiptDto
         {
             ReferenceNumber = transaction.ReferenceNumber,

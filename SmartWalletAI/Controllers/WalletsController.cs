@@ -13,6 +13,7 @@ using System.Security.Claims;
 using SmartWalletAI.Application.Features.Wallets.Commands.RemoveContact;
 using SmartWalletAI.Application.Features.Wallets.Queries.GetTransactionDetail;
 using SmartWalletAI.Application.Features.Wallets.Queries.GetWalletTransactions;
+using SmartWalletAI.Application.Features.Analysis.Queries.GetExpenseAiAdvice;
 
 namespace SmartWalletAI.WebAPI.Controllers
 {
@@ -65,12 +66,12 @@ namespace SmartWalletAI.WebAPI.Controllers
         [HttpGet("{walletId}/transactions")]
         public async Task<IActionResult> GetWalletTransactions([FromRoute] Guid walletId, [FromQuery] GetWalletTransactionsQuery query)
         {
-            
+
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (string.IsNullOrEmpty(userIdString))
-                return Unauthorized(); 
-            
+                return Unauthorized();
+
             query.WalletId = walletId;
             query.UserId = Guid.Parse(userIdString);
 
@@ -91,23 +92,32 @@ namespace SmartWalletAI.WebAPI.Controllers
         [HttpGet("analysis")]
         public async Task<IActionResult> GetExpenseAnalysis()
         {
-            //kullanıcının Id si url den değil tokendan alır.
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
 
             if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out Guid userId))
             {
                 return Unauthorized(new { Message = "Geçersiz veya eksik token" });
             }
 
-            //query oluşturuldu ve mediatra fırlatıldı
             var query = new GetExpenseAnalysisQuery { UserId = userId };
             var result = await _mediator.Send(query);
 
             return Ok(result);
         }
+        [HttpGet("ai-advice")]
+        public async Task<IActionResult> GetAiAdvice()
+        {
+            var userId =Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
 
-        [HttpGet("recipients")]
+            if (userId == Guid.Empty) return Unauthorized(new { Message = "Geçersiz veya eksik token" });
+
+            var query = new GetExpenseAiAdviceQuery(userId);
+            var advice = await _mediator.Send(query);
+
+            return Ok(new { Advice = advice });
+        }
+
+        [HttpGet("favorite")]
         public async Task<IActionResult> GetRecipients()
         {
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);

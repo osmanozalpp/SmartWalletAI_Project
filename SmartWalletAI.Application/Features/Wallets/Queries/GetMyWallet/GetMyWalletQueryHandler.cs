@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Domain.Entities;
+using SmartWalletAI.Domain.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,7 +30,7 @@ namespace SmartWalletAI.Application.Features.Wallets.Queries.GetMyWallet
 
             if (wallet == null)
             {
-                throw new Exception("Kullanıcıya ait cüzdan bulunamadı.");
+                throw new NotFoundException("Kullanıcıya ait cüzdan bulunamadı.");
             }
 
             return new WalletSummaryDto

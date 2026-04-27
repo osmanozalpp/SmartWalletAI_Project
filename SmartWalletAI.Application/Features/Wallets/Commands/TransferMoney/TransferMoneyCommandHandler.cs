@@ -2,6 +2,7 @@
 using MediatR;
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Domain.Entities;
+using SmartWalletAI.Domain.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
@@ -39,10 +40,17 @@ namespace SmartWalletAI.Application.Features.Wallets.Commands.TransferMoney
             var senderWallet = await _walletRepository.GetAsync(w => w.UserId == request.SenderId);
             var receiverWallet = await _walletRepository.GetAsync(w => w.IBAN == request.ReceiverIban);
 
-            if (senderWallet == null) throw new Exception("Gönderen cüzdanı bulunamadı.");
-            if (receiverWallet == null) throw new Exception("Geçersiz veya hatalı bir IBAN girdiniz.");
-            if (senderWallet.Id == receiverWallet.Id) throw new Exception("Kendi kendinize para gönderemezsiniz.");
-            if (senderWallet.Balance < request.Amount) throw new Exception("Yetersiz bakiye!");
+            if (senderWallet == null)
+                throw new NotFoundException("Gönderen cüzdanı bulunamadı.");
+
+            if (receiverWallet == null)
+                throw new BusinessException("Geçersiz veya hatalı bir IBAN girdiniz. Lütfen bilgileri kontrol edin.");
+
+            if (senderWallet.Id == receiverWallet.Id)
+                throw new BusinessException("Kendi kendinize para gönderemezsiniz.");
+
+            if (senderWallet.Balance < request.Amount)
+                throw new BusinessException("Yetersiz bakiye! İşlemi gerçekleştirmek için bakiyeniz yetersiz.");
 
             var senderUser = await _userRepository.GetAsync(u => u.Id == senderWallet.UserId);
             var receiverUser = await _userRepository.GetAsync(u => u.Id == receiverWallet.UserId);
@@ -79,7 +87,7 @@ namespace SmartWalletAI.Application.Features.Wallets.Commands.TransferMoney
                     SenderWalletId = senderWallet.Id,
                     ReceiverWalletId = receiverWallet.Id,
                     Amount = request.Amount,
-                    TransactionDate = DateTime.UtcNow,
+                    TransactionDate = DateTime.UtcNow.AddHours(3),
                     Description = request.Description ?? "Para Transferi",
                     Category = request.Category,
                     ReferenceNumber = generatedReference

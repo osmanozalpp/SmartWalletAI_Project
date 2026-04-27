@@ -1,6 +1,7 @@
 ﻿using MediatR;
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Domain.Entities;
+using SmartWalletAI.Domain.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,7 +28,7 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.Logout
 
             if (user == null)
             {
-                throw new Exception("Kullanıcı bulunamadı");
+                throw new NotFoundException("Kullanıcı bulunamadı!");
             }
             user.RefreshToken = null;
             user.RefreshTokenExpiryTime = null;

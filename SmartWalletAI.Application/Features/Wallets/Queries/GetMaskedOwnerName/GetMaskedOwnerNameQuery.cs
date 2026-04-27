@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Domain.Entities;
+using SmartWalletAI.Domain.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,7 +31,7 @@ namespace SmartWalletAI.Application.Features.Wallets.Queries.GetMaskedOwnerName
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (string.IsNullOrEmpty(fullName))
-                throw new Exception("Bu IBAN'a ait bir kullanıcı bulunamadı.");
+                throw new NotFoundException("Bu IBAN'a ait bir kullanıcı bulunamadı.");
 
             //maskeleme
             var words = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);

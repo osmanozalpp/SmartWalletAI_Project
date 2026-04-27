@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Domain.Entities;
 using SmartWalletAI.Domain.Enums;
+using SmartWalletAI.Domain.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,7 +35,7 @@ namespace SmartWalletAI.Application.Features.Portfolios.Command.SellAsset
                 .FirstOrDefaultAsync(m => m.Type == request.AssetType, cancellationToken);
 
             if (marketPrice == null)
-                throw new Exception("Piyasa fiyatı bulunamadı.");
+                throw new NotFoundException("Piyasa fiyatı şu an alınamıyor, lütfen biraz sonra tekrar deneyin.");
 
             var unitPrice = marketPrice.CurrentBuyPrice;
 
@@ -57,13 +58,15 @@ namespace SmartWalletAI.Application.Features.Portfolios.Command.SellAsset
                 .FirstOrDefaultAsync(a => a.UserId == request.UserId && a.Type == request.AssetType, cancellationToken);
 
             if (existingAsset == null || existingAsset.Amount < assetAmountToSell)
-                throw new Exception("Yetersiz varlık bakiyesi.");
+            {
+                throw new BusinessException("Satmak istediğiniz varlık miktarında yeterli bakiyeniz bulunmuyor.");
+            }
 
             var userWallet = await _walletRepository.GetAllAsQueryable()
                 .FirstOrDefaultAsync(w => w.UserId == request.UserId, cancellationToken);
 
             if (userWallet == null)
-                throw new Exception("Kullanıcı cüzdanı bulunamadı.");
+                throw new NotFoundException("Kullanıcı cüzdanı bulunamadı.");
 
             userWallet.Deposit(totalToReceive); 
             await _walletRepository.UpdateAsync(userWallet);
