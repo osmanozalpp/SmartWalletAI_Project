@@ -4,6 +4,7 @@ using static SmartWalletAI.Application.Features.Assistant.Commands.SendChatPromp
 using System.Security.Claims;
 using MediatR;
 using SmartWalletAI.Application.Features.Assistant.Queries;
+using static SmartWalletAI.Application.Features.Assistant.Commands.SendChatPrompt;
 
 namespace SmartWalletAI.WebAPI.Controllers
 {

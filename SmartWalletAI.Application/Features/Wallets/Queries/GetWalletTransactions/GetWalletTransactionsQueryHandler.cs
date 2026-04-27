@@ -38,7 +38,6 @@ namespace SmartWalletAI.Application.Features.Wallets.Queries.GetWalletTransactio
                 query = query.Where(t => t.TransactionDate <= request.EndDate.Value);
             }
 
-
             var transactions = await query
                 .OrderByDescending(t => t.TransactionDate)
                 .Skip((request.PageNumber - 1) * request.PageSize)

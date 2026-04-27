@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SmartWalletAI.Application.Features.Portfolios.Command.BuyAsset;
 using SmartWalletAI.Application.Features.Portfolios.Command.SellAsset;
+using SmartWalletAI.Application.Features.Portfolios.Queries.GetInvestmentAiSummary;
 using SmartWalletAI.Application.Features.Portfolios.Queries.GetInvestmentHistory;
 using SmartWalletAI.Application.Features.Portfolios.Queries.GetMarketPrices;
 using SmartWalletAI.Application.Features.Portfolios.Queries.GetPortfolioSummary;
@@ -95,6 +96,18 @@ namespace SmartWalletAI.WebAPI.Controllers
             var result = await _mediator.Send(query);
 
             return Ok(result);
+        }
+        [HttpGet("ai-summary")]
+        public async Task<IActionResult> GetInvestmentAiSummary()
+        {
+            var userIdFromToken = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(userIdFromToken) || !Guid.TryParse(userIdFromToken, out Guid userId))
+                return Unauthorized("Kullanıcı bilgisi token içerisinde bulunamadı.");
+
+            var summary = await _mediator.Send(new GetInvestmentAiSummaryQuery(userId));
+
+            return Ok(new { Summary = summary });
         }
     }
 }

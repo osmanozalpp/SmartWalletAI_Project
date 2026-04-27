@@ -5,7 +5,9 @@ using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Infrastructure.Persistence;
 using SmartWalletAI.Infrastructure.Persistence.Configurations;
 using SmartWalletAI.Infrastructure.Services;
+using Microsoft.Extensions.Http.Resilience;
 using System;
+using Polly;
 
 namespace SmartWalletAI.Infrastructure
 {
@@ -23,9 +25,18 @@ namespace SmartWalletAI.Infrastructure
             services.AddHttpClient<IAiService, GeminiAiService>(client =>
             {
                 client.BaseAddress = new Uri("https://generativelanguage.googleapis.com/");
-            });
+            })
+            .AddStandardResilienceHandler(options =>
+            {
+                options.Retry.MaxRetryAttempts = 3;
+                options.Retry.BackoffType = DelayBackoffType.Exponential;
+                options.Retry.Delay = TimeSpan.FromSeconds(2);
 
+                options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(30);
+                options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(10);
+            });
             
+
             services.AddHttpClient<IMarketDataService, CollectApiMarketService>();
 
          
