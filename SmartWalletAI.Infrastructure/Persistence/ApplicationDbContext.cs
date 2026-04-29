@@ -26,6 +26,7 @@ namespace SmartWalletAI.Infrastructure.Persistence
         public DbSet<TransactionHistory> TransactionHistorys { get; set; }
         public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
 
+        public DbSet<FinancialGoal> FinancialGoals { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -53,6 +54,14 @@ namespace SmartWalletAI.Infrastructure.Persistence
             modelBuilder.Entity<Transaction>()
             .Property(t => t.Amount)
             .HasPrecision(18, 2);
+
+            modelBuilder.Entity<FinancialGoal>()
+            .Property(x => x.TargetAmount)
+            .HasPrecision(18, 2);
+
+            modelBuilder.Entity<FinancialGoal>()
+                .Property(x => x.CurrentAmount)
+                .HasPrecision(18, 2);
 
             modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
             base.OnModelCreating(modelBuilder);

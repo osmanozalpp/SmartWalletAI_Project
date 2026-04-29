@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SmartWalletAI.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using SmartWalletAI.Infrastructure.Persistence;
 namespace SmartWalletAI.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260428122435_AddFinancialGoalsTable")]
+    partial class AddFinancialGoalsTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -77,47 +80,6 @@ namespace SmartWalletAI.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ChatMessages");
-                });
-
-            modelBuilder.Entity("SmartWalletAI.Domain.Entities.FinancialGoal", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("CurrentAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("TargetAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("TargetDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("FinancialGoals");
                 });
 
             modelBuilder.Entity("SmartWalletAI.Domain.Entities.MarketPrice", b =>
@@ -211,7 +173,7 @@ namespace SmartWalletAI.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<Guid?>("ReceiverWalletId")
+                    b.Property<Guid>("ReceiverWalletId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ReferenceNumber")
@@ -379,7 +341,8 @@ namespace SmartWalletAI.Infrastructure.Migrations
                     b.HasOne("SmartWalletAI.Domain.Entities.Wallet", "ReceiverWallet")
                         .WithMany()
                         .HasForeignKey("ReceiverWalletId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("SmartWalletAI.Domain.Entities.Wallet", "SenderWallet")
                         .WithMany()
