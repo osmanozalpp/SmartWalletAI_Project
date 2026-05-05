@@ -4,9 +4,7 @@ using SmartWalletAI.Domain.Entities;
 using SmartWalletAI.Domain.Enums;
 using SmartWalletAI.Domain.Exceptions;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SmartWalletAI.Application.Features.FinancialGoals.Commands.CloseFinancialGoal
@@ -18,7 +16,11 @@ namespace SmartWalletAI.Application.Features.FinancialGoals.Commands.CloseFinanc
         private readonly IUnitOfWork _unitOfWork;
         private readonly IRepository<Transaction> _transactionRepository;
 
-        public CloseFinancialGoalHandler(IRepository<FinancialGoal> goalRepository, IRepository<Wallet> walletRepository, IUnitOfWork unitOfWork , IRepository<Transaction> transactionRepository)
+        public CloseFinancialGoalHandler(
+            IRepository<FinancialGoal> goalRepository,
+            IRepository<Wallet> walletRepository,
+            IUnitOfWork unitOfWork,
+            IRepository<Transaction> transactionRepository)
         {
             _goalRepository = goalRepository;
             _walletRepository = walletRepository;
@@ -33,45 +35,75 @@ namespace SmartWalletAI.Application.Features.FinancialGoals.Commands.CloseFinanc
             {
                 var goal = await _goalRepository.GetAsync(g => g.Id == request.GoalId);
 
-                if (goal == null) 
+                if (goal == null)
                     throw new NotFoundException("Hedef bulunamadı.");
 
+                // --- HATAYI ÇÖZDÜĞÜMÜZ YER ---
+                // Sadece iptal edilmişleri VEYA tamamlanıp parası çoktan alınmışları engelliyoruz.
+                // Yani hedef "Completed" olsa bile içinde para (CurrentAmount > 0) varsa İŞLEME DEVAM EDECEK!
                 if (goal.Status == GoalStatus.Cancelled || (goal.Status == GoalStatus.Completed && goal.CurrentAmount == 0))
-                    throw new BusinessException("Bu hedef zaten kapatılmış.");
+                    throw new BusinessException("Bu hedef zaten kapatılmış ve birikim iade edilmiş.");
 
                 var wallet = await _walletRepository.GetAsync(w => w.UserId == goal.UserId);
 
+                if (wallet == null)
+                    throw new NotFoundException("Kullanıcıya ait cüzdan bulunamadı.");
+
+                // --- 1. SENARYOLARI VE DURUMLARI BELİRLEME ---
+                GoalStatus finalStatus;
+                string transactionDescription;
+
+                // Hedef dolduysa VEYA zaten Completed statüsündeyse
+                bool isTargetReached = goal.CurrentAmount >= goal.TargetAmount || goal.Status == GoalStatus.Completed;
+                bool isExpired = goal.TargetDate <= DateTime.UtcNow;
+
+                if (isTargetReached) // Hedef tamamlandı
+                {
+                    finalStatus = GoalStatus.Completed;
+                    transactionDescription = $"{goal.Title} hedefi başarıyla tamamlandı, birikim ana bakiyeye aktarıldı.";
+                }
+                else if (isExpired) // Süre doldu
+                {
+                    finalStatus = GoalStatus.Cancelled;
+                    transactionDescription = $"{goal.Title} hedefinin süresi doldu, birikim ana bakiyeye iade edildi.";
+                }
+                else // Kullanıcı erken kapattı
+                {
+                    finalStatus = GoalStatus.Cancelled;
+                    transactionDescription = $"{goal.Title} hedefi kullanıcı tarafından iptal edildi, birikim iade edildi.";
+                }
+
+                // --- 2. PARA TRANSFERİ (İADE) İŞLEMİ ---
                 var amountToReturn = goal.CurrentAmount;
 
                 if (amountToReturn > 0)
                 {
                     wallet.Deposit(amountToReturn);
-                    goal.CurrentAmount = 0;
+                    goal.CurrentAmount = 0; 
 
-                    string reference = "#HI-" + new Random().Next(1000000, 9999999).ToString();
+                    string reference = $"#HT-{DateTime.UtcNow:yyyyMMddHHmmss}-{new Random().Next(100, 999)}";
+
                     var transactionRecord = new Transaction
                     {
                         Id = Guid.NewGuid(),
-                        SenderWalletId = null,       
-                        ReceiverWalletId = wallet.Id, 
+                        SenderWalletId = null,
+                        ReceiverWalletId = wallet.Id,
                         Amount = amountToReturn,
                         TransactionDate = DateTime.UtcNow.AddHours(3),
-                        Description = amountToReturn >= goal.TargetAmount
-                            ? $"{goal.Title} hedefi başarıyla tamamlandı, birikim aktarıldı."
-                            : $"{goal.Title} hedefi iptal edildi, birikim iade edildi.",
+                        Description = transactionDescription,
                         Category = TransactionCategory.Diğer,
-                        ReferenceNumber = reference
+                        ReferenceNumber = reference,
+                        FinancialGoalId = goal.Id
                     };
+
                     await _transactionRepository.AddAsync(transactionRecord);
                 }
 
-                if (goal.Status == GoalStatus.Active)
-                {
-                    goal.Status = amountToReturn >= goal.TargetAmount ? GoalStatus.Completed : GoalStatus.Cancelled;
-                }
+                goal.Status = finalStatus;
 
                 await _walletRepository.UpdateAsync(wallet);
                 await _goalRepository.UpdateAsync(goal);
+
                 await _unitOfWork.SaveChangesAsync(ct);
                 await dbTransaction.CommitAsync(ct);
 

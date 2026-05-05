@@ -10,8 +10,10 @@ namespace SmartWalletAI.Domain.Entities
 {
     public class Transaction : BaseEntity
     {
-        public Guid SenderWalletId { get; set; }
-        public Guid ReceiverWalletId { get; set; }
+        public Guid? FinancialGoalId { get; set; }
+        public FinancialGoal? FinancialGoal { get; set; }
+        public Guid? SenderWalletId { get; set; }
+        public Guid? ReceiverWalletId { get; set; }
         public Decimal Amount { get; set; }
         
         public DateTime TransactionDate { get; set; }
@@ -20,7 +22,6 @@ namespace SmartWalletAI.Domain.Entities
         public TransactionCategory Category { get; set; }
         public Wallet SenderWallet { get; set; }
         public Wallet ReceiverWallet { get; set; }
-
         public string ReferenceNumber { get; set; } = string.Empty;
 
     }
