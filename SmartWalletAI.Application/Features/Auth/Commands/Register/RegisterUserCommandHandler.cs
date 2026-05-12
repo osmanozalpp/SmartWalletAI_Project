@@ -51,7 +51,7 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.Register
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 IsEmailVerified = false,
                 EmailVerificationCode = verificationCode,
-                EmailVerificationCodeExpiry = DateTime.UtcNow.AddHours(3).AddMinutes(15)
+                EmailVerificationCodeExpiry = DateTime.UtcNow.ToTurkeyTime().AddMinutes(15)
             };
 
             await _userRepository.AddAsync(user);

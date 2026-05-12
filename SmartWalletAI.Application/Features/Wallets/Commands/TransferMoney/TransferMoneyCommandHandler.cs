@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using MediatR;
+using SmartWalletAI.Application.Common.Helpers;
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Domain.Entities;
 using SmartWalletAI.Domain.Exceptions;
@@ -87,7 +88,7 @@ namespace SmartWalletAI.Application.Features.Wallets.Commands.TransferMoney
                     SenderWalletId = senderWallet.Id,
                     ReceiverWalletId = receiverWallet.Id,
                     Amount = request.Amount,
-                    TransactionDate = DateTime.UtcNow.AddHours(3),
+                    TransactionDate = DateTime.UtcNow.ToTurkeyTime(),
                     Description = request.Description ?? "Para Transferi",
                     Category = request.Category,
                     ReferenceNumber = generatedReference

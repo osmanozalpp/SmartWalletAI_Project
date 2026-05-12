@@ -1,10 +1,11 @@
 ﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SmartWalletAI.Application.Common.Helpers;
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Application.Features.FinancialGoals.Queries.Common;
 using SmartWalletAI.Domain.Entities;
-using SmartWalletAI.Domain.Enums; // GoalStatus'ü kullanabilmek için eklendi
-using System; // DateTime.UtcNow kullanabilmek için eklendi
+using SmartWalletAI.Domain.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -25,12 +26,14 @@ namespace SmartWalletAI.Application.Features.FinancialGoals.Queries.GetFinancial
 
         public async Task<List<FinancialGoalDto>> Handle(GetFinancialGoalsQuery request, CancellationToken cancellationToken)
         {
-           
+            var currentTurkeyTime = DateTime.UtcNow.ToTurkeyTime();
+
             var goals = await _goalRepository.GetAllAsQueryable()
                 .Where(g => g.UserId == request.UserId
                          && g.Status == GoalStatus.Active
-                         && g.TargetDate > DateTime.UtcNow)
-                .OrderBy(g => g.TargetDate)
+                         && g.TargetDate > currentTurkeyTime)
+                .OrderByDescending(g => g.CurrentAmount >= g.TargetAmount)
+                .ThenBy(g => g.TargetDate)
                 .ToListAsync(cancellationToken);
 
             var goalDtos = goals.Select(goal => new FinancialGoalDto

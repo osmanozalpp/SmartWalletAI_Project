@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SmartWalletAI.Application.Common.Helpers;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -20,7 +21,7 @@ namespace SmartWalletAI.Application.Features.FinancialGoals.Queries.Common
 
         public decimal RemainingAmount => TargetAmount - CurrentAmount;
 
-        public int DaysRemaining => (TargetDate - DateTime.UtcNow).Days > 0
+        public int DaysRemaining => (TargetDate - DateTime.UtcNow.ToTurkeyTime()).Days > 0
             ? (TargetDate - DateTime.UtcNow).Days
             : 0;
     }

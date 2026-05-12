@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using SmartWalletAI.Application.Common.Helpers;
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Domain.Entities;
 using SmartWalletAI.Domain.Exceptions;
@@ -32,7 +33,7 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.VerifyEmail
             if (user.EmailVerificationCode != request.Code)
                 throw new BusinessException("Girdiğiniz doğrulama kodu hatalı.");
 
-            if (user.EmailVerificationCodeExpiry < DateTime.UtcNow.AddHours(3))
+            if (user.EmailVerificationCodeExpiry < DateTime.UtcNow.ToTurkeyTime())
                 throw new BusinessException("Doğrulama kodunun süresi dolmuş. Lütfen yeni bir kod isteyin.");
             user.IsEmailVerified = true;
             user.EmailVerificationCode = null;

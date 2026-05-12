@@ -56,6 +56,7 @@ namespace SmartWalletAI.Application.Features.Analysis.Queries.GetExpenseAnalysis
 
             var totalExpense = monthlyExpenses.Sum(t => t.Amount);
 
+
             // Kategorilere göre grupla
             var groupedCategories = monthlyExpenses
                 .GroupBy(t => t.Category)

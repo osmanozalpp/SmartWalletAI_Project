@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using SmartWalletAI.Application.Common.Helpers;
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Domain.Entities;
 using SmartWalletAI.Domain.Enums;
@@ -55,7 +56,7 @@ namespace SmartWalletAI.Application.Features.FinancialGoals.Commands.CloseFinanc
 
                 // Hedef dolduysa VEYA zaten Completed statüsündeyse
                 bool isTargetReached = goal.CurrentAmount >= goal.TargetAmount || goal.Status == GoalStatus.Completed;
-                bool isExpired = goal.TargetDate <= DateTime.UtcNow;
+                bool isExpired = goal.TargetDate <= DateTime.UtcNow.ToTurkeyTime();
 
                 if (isTargetReached) // Hedef tamamlandı
                 {

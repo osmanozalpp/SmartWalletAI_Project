@@ -1,10 +1,11 @@
 ﻿using MediatR;
+using SmartWalletAI.Application.Common.Helpers;
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Domain.Entities;
 using SmartWalletAI.Domain.Enums;
 using SmartWalletAI.Domain.Exceptions;
 using System;
-using System.Security.Cryptography; 
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -34,7 +35,6 @@ namespace SmartWalletAI.Application.Features.FinancialGoals.Commands.AddFunds
             using var dbTransaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
             try
             {
-               
                 var goal = await _goalRepository.GetAsync(g => g.Id == request.GoalId);
 
                 if (goal == null)
@@ -58,9 +58,7 @@ namespace SmartWalletAI.Application.Features.FinancialGoals.Commands.AddFunds
                 wallet.Withdraw(request.Amount);
                 goal.Deposit(request.Amount);
 
-                if (goal.CurrentAmount >= goal.TargetAmount)
-                    goal.Status = GoalStatus.Completed;
-
+               
                 string reference = $"#HT-{RandomNumberGenerator.GetInt32(1000000, 9999999)}";
 
                 var transactionRecord = new Transaction
@@ -69,10 +67,10 @@ namespace SmartWalletAI.Application.Features.FinancialGoals.Commands.AddFunds
                     SenderWalletId = wallet.Id,
                     ReceiverWalletId = null,
                     Amount = request.Amount,
-                    TransactionDate = DateTime.UtcNow.AddHours(3),
+                    TransactionDate = DateTime.UtcNow.ToTurkeyTime(),
                     Description = $"{goal.Title} hedefi için para biriktirildi.",
                     Category = TransactionCategory.Diğer,
-                    FinancialGoalId = goal.Id, 
+                    FinancialGoalId = goal.Id,
                     ReferenceNumber = reference
                 };
 

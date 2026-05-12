@@ -4,6 +4,7 @@ using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Domain.Entities;
 using ValidationException = FluentValidation.ValidationException;
 using SmartWalletAI.Domain.Exceptions;
+using SmartWalletAI.Application.Common.Helpers;
 
 namespace SmartWalletAI.Application.Features.Auth.Commands.Login
 {
@@ -43,7 +44,7 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.Login
             
             if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             {
-                user.LastFailedLoginDate = DateTime.UtcNow.AddHours(3);
+                user.LastFailedLoginDate = DateTime.UtcNow.ToTurkeyTime();
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
 
                 throw new UnauthorizedException("E-posta adresi veya şifre hatalı.");
@@ -63,7 +64,7 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.Login
           
             var accessToken = _tokenService.GenerateAccesToken(user);
             var refreshToken = _tokenService.GenerateRefreshToken();
-            var refreshTokenExpiration = DateTime.UtcNow.AddHours(3).AddDays(7);
+            var refreshTokenExpiration = DateTime.UtcNow.AddDays(7);
 
             user.RefreshToken = refreshToken;
             user.RefreshTokenExpiryTime = refreshTokenExpiration;

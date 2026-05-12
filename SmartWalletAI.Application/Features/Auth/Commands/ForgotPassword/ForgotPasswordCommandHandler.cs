@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using SmartWalletAI.Application.Common.Helpers;
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Domain.Entities;
 using System;
@@ -32,7 +33,7 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.ForgotPassword
 
             string resetCode = new Random().Next(100000, 999999).ToString();
             user.PasswordResetCode = resetCode;
-            user.PasswordResetCodeExpiry = DateTime.UtcNow.AddHours(3).AddMinutes(15);
+            user.PasswordResetCodeExpiry = DateTime.UtcNow.ToTurkeyTime().AddMinutes(15);
 
             await _userRepository.UpdateAsync(user);
 

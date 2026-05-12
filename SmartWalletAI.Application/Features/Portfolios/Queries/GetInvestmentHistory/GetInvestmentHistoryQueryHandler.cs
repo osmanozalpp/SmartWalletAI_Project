@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SmartWalletAI.Application.Common.Helpers; // Extension metodu için gerekli
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Domain.Entities;
 using System;
@@ -33,7 +34,7 @@ namespace SmartWalletAI.Application.Features.Portfolios.Queries.GetInvestmentHis
                 TransactionType = (int)t.TransactionType == 1 ? "Alım" : "Satım",
                 Amount = t.Amount,
                 TotalPrice = t.TotalPrice,
-                Date = t.CreatedDate
+                Date = t.CreatedDate.ToTurkeyTime()
             }).ToList();
 
             return new InvestmentHistoryDto

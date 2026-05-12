@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using SmartWalletAI.Application.Common.Helpers;
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Domain.Entities;
 using SmartWalletAI.Domain.Exceptions;
@@ -39,7 +40,7 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.ProfileChangeEmail
 
             user.PendingEmail = request.NewEmail;
             user.EmailVerificationCode = verificationCode;
-            user.EmailVerificationCodeExpiry = DateTime.UtcNow.AddHours(3).AddMinutes(15);
+            user.EmailVerificationCodeExpiry = DateTime.UtcNow.ToTurkeyTime().AddMinutes(15);
 
             _userRepository.UpdateAsync(user);
             await _unitOfWork.SaveChangesAsync(cancellationToken);

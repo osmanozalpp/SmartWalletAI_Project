@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using SmartWalletAI.Application.Common.Helpers;
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Domain.Entities;
 using SmartWalletAI.Domain.Exceptions;
@@ -37,10 +38,10 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.ReactivateAccount
             var verificationCode = new Random().Next(100000, 999999).ToString();
 
             user.IsDeleted = false;
-            user.UpdatedDate = DateTime.UtcNow.AddHours(3);
+            user.UpdatedDate = DateTime.UtcNow.ToTurkeyTime();
 
             user.EmailVerificationCode = verificationCode;
-            user.EmailVerificationCodeExpiry = DateTime.UtcNow.AddHours(3).AddMinutes(3);
+            user.EmailVerificationCodeExpiry = DateTime.UtcNow.ToTurkeyTime().AddMinutes(3);
 
             await _userRepository.UpdateAsync(user);
             await _unitOfWork.SaveChangesAsync();

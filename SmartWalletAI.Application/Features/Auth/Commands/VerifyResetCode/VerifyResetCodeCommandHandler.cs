@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using SmartWalletAI.Application.Common.Helpers;
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Domain.Entities;
 using System;
@@ -39,7 +40,7 @@ namespace SmartWalletAI.Application.Features.Auth.Commands.VerifyResetCode
                     Message = "Geçersiz doğrulama kodu."
                 };
             }
-            if (user.PasswordResetCodeExpiry < DateTime.UtcNow.AddHours(3))
+            if (user.PasswordResetCodeExpiry < DateTime.UtcNow.ToTurkeyTime())
             {
                 return new VerifyResetCodeResponse
                 {

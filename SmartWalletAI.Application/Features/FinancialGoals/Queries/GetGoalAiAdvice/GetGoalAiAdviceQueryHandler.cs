@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using SmartWalletAI.Application.Common.Helpers;
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Application.Features.FinancialGoals.Queries.GetGoalAiAdvice;
 using SmartWalletAI.Domain.Entities;
@@ -30,7 +31,7 @@ namespace SmartWalletAI.Application.Features.FinancialGoals.Queries.GetGoalAiAdv
                 if (goal == null) return null;
 
                 var wallet = await _walletRepository.GetAsync(w => w.UserId == goal.UserId);
-                int daysRemaining = (goal.TargetDate - DateTime.UtcNow).Days;
+                int daysRemaining = (goal.TargetDate - DateTime.UtcNow.ToTurkeyTime()).Days;
 
                 if (goal.CurrentAmount <= 0)
                 {

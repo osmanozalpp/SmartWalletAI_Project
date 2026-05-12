@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using Microsoft.EntityFrameworkCore; // Kritik: ToListAsync için şart!
+using SmartWalletAI.Application.Common.Helpers;
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Domain.Entities;
 using System;
@@ -27,16 +28,13 @@ public class GetExpenseAiAdviceQueryHandler : IRequestHandler<GetExpenseAiAdvice
 
     public async Task<string> Handle(GetExpenseAiAdviceQuery request, CancellationToken cancellationToken)
     {
-        // 1. Cüzdan Kontrolü
         var userWallet = await _walletRepository.GetAsync(w => w.UserId == request.UserId);
         if (userWallet == null) return "Cüzdan bulunamadı.";
 
-        // 2. Tarih Ayarları (Sadece ayı değil, yılı da kontrol etmeliyiz)
-        var now = DateTime.UtcNow.AddHours(3);
+        var now = DateTime.UtcNow.ToTurkeyTime();
         var currentMonth = now.Month;
         var currentYear = now.Year;
 
-        // 3. Veriyi Çek
         var expenses = await _transactionRepository.GetAllAsQueryable()
             .AsNoTracking()
             .Where(t => t.SenderWalletId == userWallet.Id &&
@@ -45,9 +43,8 @@ public class GetExpenseAiAdviceQueryHandler : IRequestHandler<GetExpenseAiAdvice
             .ToListAsync(cancellationToken);
 
         if (!expenses.Any())
-            return "Henüz harcama analizi yapacak kadar veri yok. Harcamaya devam! 🚀";
+            return "Henüz harcama analizi yapacak kadar veri yok.";
 
-        // 4. Analiz İçin Veriyi Hazırla
         var total = expenses.Sum(x => x.Amount);
         var topCategoryGroup = expenses
             .GroupBy(x => x.Category)
@@ -57,12 +54,10 @@ public class GetExpenseAiAdviceQueryHandler : IRequestHandler<GetExpenseAiAdvice
         var topCategoryName = topCategoryGroup.Key.ToString();
         var topCategoryAmount = topCategoryGroup.Sum(x => x.Amount);
 
-        // 5. AI Prompt Oluştur
         string contextData = $"[ANALİZ] Kullanıcı bu ay ({currentMonth}/{currentYear}) toplam {total:N2} TL harcadı. " +
                              $"En çok harcama yapılan kategori: {topCategoryName} ({topCategoryAmount:N2} TL). " +
                              "Kısa ve samimi bir tavsiye ver.";
 
-        // 6. AI Servis Çağrısı
         return await _aiService.GetFinancialAdviceAsync(contextData);
     }
 }

@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SmartWalletAI.Application.Common.Helpers;
 using SmartWalletAI.Application.Common.Interfaces;
 using SmartWalletAI.Application.Features.Wallets.Queries.GetWalletTransactions;
 using SmartWalletAI.Domain.Entities;
@@ -25,7 +26,7 @@ namespace SmartWalletAI.Application.Features.Portfolios.Queries.GetInvestmentAiS
 
         public async Task<string> Handle(GetInvestmentAiSummaryQuery request, CancellationToken cancellationToken)
         {
-            var now =DateTime.UtcNow.AddHours(3);
+            var now = DateTime.UtcNow.ToTurkeyTime();
 
 
             var monthlyBuyVolume = await _transactionHistory.GetAllAsQueryable()
