@@ -5,11 +5,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SmartWalletAI.Application.Features.Assistant.Commands
+namespace SmartWalletAI.Application.Features.Assistant.Commands.SendChat
 {
     public class SendChatPrompt
     {
-        public record SendChatPromptCommand(string Message , Guid UserId) : IRequest<AssistantResponseDto>;
+        public record SendChatPromptCommand(string Message, Guid UserId) : IRequest<AssistantResponseDto>;
 
         public record AssistantResponseDto(
             string Reply,
